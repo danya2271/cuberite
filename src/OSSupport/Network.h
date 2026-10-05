@@ -330,7 +330,8 @@ public:
 	Implemented in ServerHandleImpl.cpp. */
 	static cServerHandlePtr Listen(
 		UInt16 a_Port,
-		cListenCallbacksPtr a_ListenCallbacks
+		cListenCallbacksPtr a_ListenCallbacks,
+		const AString & a_BindAddress = ""
 	);
 
 
@@ -363,6 +364,5 @@ public:
 	/** Returns all local IP addresses for network interfaces currently available. */
 	static AStringVector EnumLocalIPAddresses(void);
 };
-
 
 

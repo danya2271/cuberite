@@ -47,7 +47,8 @@ public:
 	Always returns a server instance; in the event of a failure, the instance holds the error details. Use IsListening() to query success. */
 	static cServerHandleImplPtr Listen(
 		UInt16 a_Port,
-		cNetwork::cListenCallbacksPtr a_ListenCallbacks
+		cNetwork::cListenCallbacksPtr a_ListenCallbacks,
+		const AString & a_BindAddress
 	);
 
 	// cServerHandle overrides:
@@ -90,7 +91,7 @@ protected:
 
 	/** Starts listening on the specified port.
 	Returns true if successful, false on failure. On failure, sets m_ErrorCode and m_ErrorMsg. */
-	bool Listen(UInt16 a_Port);
+	bool Listen(UInt16 a_Port, const AString & a_BindAddress);
 
 	/** The callback called by LibEvent upon incoming connection. */
 	static void Callback(evconnlistener * a_Listener, evutil_socket_t a_Socket, sockaddr * a_Addr, int a_Len, void * a_Self);
@@ -99,7 +100,6 @@ protected:
 	Called by cTCPLinkImpl when the link is terminated. */
 	void RemoveLink(const cTCPLinkImpl * a_Link);
 };
-
 
 
 

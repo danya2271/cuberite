@@ -263,6 +263,7 @@ private:
 	/** The list of ports on which the server should listen for connections.
 	Initialized in InitServer(), used in Start(). */
 	AStringVector m_Ports;
+	AString m_BindAddress;
 
 
 	/** Time, in ticks, since the server started
@@ -306,7 +307,6 @@ private:
 
 
 };  // tolua_export
-
 
 
 

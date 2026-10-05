@@ -100,12 +100,13 @@ void cServerHandleImpl::Close(void)
 
 cServerHandleImplPtr cServerHandleImpl::Listen(
 	UInt16 a_Port,
-	cNetwork::cListenCallbacksPtr a_ListenCallbacks
+	cNetwork::cListenCallbacksPtr a_ListenCallbacks,
+	const AString & a_BindAddress
 )
 {
 	cServerHandleImplPtr res{new cServerHandleImpl(std::move(a_ListenCallbacks))};
 	res->m_SelfPtr = res;
-	if (res->Listen(a_Port))
+	if (res->Listen(a_Port, a_BindAddress))
 	{
 		cNetworkSingleton::Get().AddServer(res);
 	}
@@ -121,10 +122,50 @@ cServerHandleImplPtr cServerHandleImpl::Listen(
 
 
 
-bool cServerHandleImpl::Listen(UInt16 a_Port)
+bool cServerHandleImpl::Listen(UInt16 a_Port, const AString & a_BindAddress)
 {
 	// Make sure the cNetwork internals are innitialized:
 	cNetworkSingleton::Get();
+
+	if (!a_BindAddress.empty())
+	{
+		sockaddr_storage Address{};
+		int AddressSize;
+		auto & IPv4 = reinterpret_cast<sockaddr_in &>(Address);
+		auto & IPv6 = reinterpret_cast<sockaddr_in6 &>(Address);
+		if (evutil_inet_pton(AF_INET, a_BindAddress.c_str(), &IPv4.sin_addr) == 1)
+		{
+			IPv4.sin_family = AF_INET;
+			IPv4.sin_port = htons(a_Port);
+			AddressSize = sizeof(IPv4);
+		}
+		else if (evutil_inet_pton(AF_INET6, a_BindAddress.c_str(), &IPv6.sin6_addr) == 1)
+		{
+			IPv6.sin6_family = AF_INET6;
+			IPv6.sin6_port = htons(a_Port);
+			AddressSize = sizeof(IPv6);
+		}
+		else
+		{
+			m_ErrorCode = -1;
+			m_ErrorMsg = "BindAddress must be a numeric IPv4 or IPv6 address";
+			return false;
+		}
+		m_ConnListener = evconnlistener_new_bind(
+			cNetworkSingleton::Get().GetEventBase(), Callback, this,
+			LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1,
+			reinterpret_cast<const sockaddr *>(&Address), AddressSize
+		);
+		if (m_ConnListener == nullptr)
+		{
+			m_ErrorCode = EVUTIL_SOCKET_ERROR();
+			m_ErrorMsg = fmt::format(FMT_STRING("Cannot bind {}:{}: {}"),
+				a_BindAddress, a_Port, evutil_socket_error_to_string(m_ErrorCode));
+			return false;
+		}
+		m_IsListening = true;
+		return true;
+	}
 
 	// Set up the main socket:
 	// It should listen on IPv6 with IPv4 fallback, when available; IPv4 when IPv6 is not available.
@@ -370,12 +411,12 @@ void cServerHandleImpl::RemoveLink(const cTCPLinkImpl * a_Link)
 
 cServerHandlePtr cNetwork::Listen(
 	UInt16 a_Port,
-	cNetwork::cListenCallbacksPtr a_ListenCallbacks
+	cNetwork::cListenCallbacksPtr a_ListenCallbacks,
+	const AString & a_BindAddress
 )
 {
-	return cServerHandleImpl::Listen(a_Port, std::move(a_ListenCallbacks));
+	return cServerHandleImpl::Listen(a_Port, std::move(a_ListenCallbacks), a_BindAddress);
 }
-
 
 
 

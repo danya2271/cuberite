@@ -174,6 +174,7 @@ bool cServer::InitServer(cSettingsRepositoryInterface & a_Settings, bool a_Shoul
 	LOGD("Compatible protocol versions %s", MCS_PROTOCOL_VERSIONS);
 
 	m_Ports = ReadUpgradeIniPorts(a_Settings, "Server", "Ports", "Port", "PortsIPv6", "25565");
+	m_BindAddress = a_Settings.GetValueSet("Server", "BindAddress", "");
 
 	m_RCONServer.Initialize(a_Settings);
 
@@ -408,7 +409,7 @@ bool cServer::Start(void)
 			LOGWARNING("Invalid port specified for server: \"%s\". Ignoring.", port.c_str());
 			continue;
 		}
-		auto Handle = cNetwork::Listen(PortNum, std::make_shared<cServerListenCallbacks>(*this, PortNum));
+		auto Handle = cNetwork::Listen(PortNum, std::make_shared<cServerListenCallbacks>(*this, PortNum), m_BindAddress);
 		if (Handle->IsListening())
 		{
 			LOGINFO("Server Running On Port: %s", port.c_str());

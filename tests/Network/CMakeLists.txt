@@ -65,6 +65,9 @@ endif()
 
 
 # Define individual tests:
+add_executable(BindAddress-exe BindAddress.cpp)
+target_link_libraries(BindAddress-exe Network)
+add_test(NAME BindAddress-test COMMAND BindAddress-exe)
 
 # Google: download the google.com frontpage using http client socket:
 add_executable(Google-exe Google.cpp)
@@ -99,7 +102,6 @@ set_target_properties(
 	Network
 	PROPERTIES FOLDER Tests/Libraries
 )
-
 
 
 
