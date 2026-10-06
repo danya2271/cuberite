@@ -41,7 +41,6 @@ public:
 	virtual void HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk) override;
 	virtual bool DoTakeDamage(TakeDamageInfo & TDI) override;
 	virtual void KilledBy(TakeDamageInfo & a_TDI) override;
-	virtual void OnRemoveFromWorld(cWorld & a_World) override;
 	virtual void HandleSpeedFromAttachee(float a_Forward, float a_Sideways) override;
 	int LastDamage(void) const { return m_LastDamage; }
 	ePayload GetPayload(void) const { return m_Payload; }
@@ -50,8 +49,6 @@ protected:
 
 	ePayload m_Payload;
 	int m_LastDamage;
-	Vector3i m_DetectorRailPosition;
-	bool m_bIsOnDetectorRail;
 
 	/** Applies an acceleration to the minecart parallel to a_ForwardDirection but without allowing backward speed. */
 	void ApplyAcceleration(Vector3d a_ForwardDirection, double a_Acceleration);

@@ -1013,8 +1013,8 @@ bool cChunkMap::ForEachEntityInChunk(int a_ChunkX, int a_ChunkZ, cEntityCallback
 bool cChunkMap::ForEachEntityInBox(const cBoundingBox & a_Box, cEntityCallback a_Callback)
 {
 	// Calculate the chunk range for the box:
-	int MinChunkX = FloorC(a_Box.GetMinX() / cChunkDef::Width);
-	int MinChunkZ = FloorC(a_Box.GetMinZ() / cChunkDef::Width);
+	int MinChunkX = FloorC((a_Box.GetMinX() - cChunkDef::Width) / cChunkDef::Width);
+	int MinChunkZ = FloorC((a_Box.GetMinZ() - cChunkDef::Width) / cChunkDef::Width);
 	int MaxChunkX = FloorC((a_Box.GetMaxX() + cChunkDef::Width) / cChunkDef::Width);
 	int MaxChunkZ = FloorC((a_Box.GetMaxZ() + cChunkDef::Width) / cChunkDef::Width);
 

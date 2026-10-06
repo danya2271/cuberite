@@ -47,16 +47,6 @@ namespace PoweredRailHandler
 
 		switch (a_BlockType)
 		{
-			case E_BLOCK_DETECTOR_RAIL:
-			{
-				/*
-				if ((m_Chunk->GetMeta(a_RelBlockX, a_RelBlockY, a_RelBlockZ) & 0x08) == 0x08)
-				{
-					SetAllDirsAsPowered(a_RelBlockX, a_RelBlockY, a_RelBlockZ, a_MyType);
-				}
-				*/
-				return;
-			}
 			case E_BLOCK_ACTIVATOR_RAIL:
 			case E_BLOCK_POWERED_RAIL:
 			{

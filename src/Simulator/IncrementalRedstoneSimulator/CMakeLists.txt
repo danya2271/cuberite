@@ -7,6 +7,7 @@ target_sources(
 
 	CommandBlockHandler.h
 	DaylightSensorHandler.h
+	DetectorRailHandler.h
 	DoorHandler.h
 	DropSpenserHandler.h
 	ForEachSourceCallback.h
@@ -31,4 +32,5 @@ target_sources(
 	TripwireHookHandler.h
 	PoweredRailHandler.h
 	PressurePlateHandler.h
+	PressurePlatePower.h
 )

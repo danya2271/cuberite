@@ -16,6 +16,7 @@ bool cIncrementalRedstoneSimulator::IsAlwaysTicked(BLOCKTYPE a_Block)
 	switch (a_Block)  // Call the appropriate simulator for the entry's block type
 	{
 		case E_BLOCK_DAYLIGHT_SENSOR:
+		case E_BLOCK_DETECTOR_RAIL:
 		case E_BLOCK_INVERTED_DAYLIGHT_SENSOR:
 		case E_BLOCK_TRIPWIRE_HOOK:
 		case E_BLOCK_WOODEN_PRESSURE_PLATE:

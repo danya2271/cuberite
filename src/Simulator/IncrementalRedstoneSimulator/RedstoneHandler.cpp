@@ -8,6 +8,7 @@
 #include "BlockType.h"
 #include "CommandBlockHandler.h"
 #include "DaylightSensorHandler.h"
+#include "DetectorRailHandler.h"
 #include "DoorHandler.h"
 #include "RedstoneTorchHandler.h"
 #include "RedstoneWireHandler.h"
@@ -38,8 +39,8 @@
 		switch (BlockType) \
 		{ \
 			case E_BLOCK_ACTIVATOR_RAIL:                                                       \
-			case E_BLOCK_DETECTOR_RAIL:                                                        \
 			case E_BLOCK_POWERED_RAIL:             return PoweredRailHandler::Callback;        \
+			case E_BLOCK_DETECTOR_RAIL:            return DetectorRailHandler::Callback;       \
 			case E_BLOCK_ACTIVE_COMPARATOR:                                                    \
 			case E_BLOCK_INACTIVE_COMPARATOR:      return RedstoneComparatorHandler::Callback; \
 			case E_BLOCK_DISPENSER:                                                            \

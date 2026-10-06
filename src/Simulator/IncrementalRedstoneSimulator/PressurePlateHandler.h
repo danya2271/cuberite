@@ -2,7 +2,7 @@
 #pragma once
 
 #include "../../BoundingBox.h"
-#include "../../Entities/Pickup.h"
+#include "PressurePlatePower.h"
 
 
 
@@ -13,9 +13,9 @@ namespace PressurePlateHandler
 	static unsigned char GetPowerLevel(const cChunk & Chunk, const Vector3i Position, const BLOCKTYPE BlockType)
 	{
 		size_t NumberOfEntities = 0;
-		bool FoundPlayer = false;
+		bool FoundLivingEntity = false;
 
-		Chunk.ForEachEntityInBox(cBoundingBox(Vector3d(0.5, 0, 0.5) + Position, 0.5, 0.5), [&](cEntity & Entity)
+		Chunk.GetWorld()->ForEachEntityInBox(cBoundingBox(Vector3d(0.5, 0, 0.5) + Position, 0.375, 0.25), [&](cEntity & Entity)
 		{
 			if (Entity.GetHealth() <= 0)
 			{
@@ -31,13 +31,11 @@ namespace PressurePlateHandler
 					return false;
 				}
 
-				FoundPlayer = true;
+				FoundLivingEntity = true;
 			}
-			else if (Entity.IsPickup())
+			else if (Entity.IsMob())
 			{
-				const auto & Pickup = static_cast<cPickup &>(Entity);
-				NumberOfEntities += static_cast<size_t>(Pickup.GetItem().m_ItemCount);
-				return false;
+				FoundLivingEntity = true;
 			}
 
 			NumberOfEntities++;
@@ -48,7 +46,7 @@ namespace PressurePlateHandler
 		{
 			case E_BLOCK_STONE_PRESSURE_PLATE:
 			{
-				return FoundPlayer ? 15 : 0;
+				return FoundLivingEntity ? 15 : 0;
 			}
 			case E_BLOCK_WOODEN_PRESSURE_PLATE:
 			{
@@ -56,11 +54,11 @@ namespace PressurePlateHandler
 			}
 			case E_BLOCK_HEAVY_WEIGHTED_PRESSURE_PLATE:
 			{
-				return std::min(static_cast<unsigned char>(CeilC(NumberOfEntities / 10.f)), static_cast<unsigned char>(15));
+				return PressurePlatePower::Weighted(NumberOfEntities, 10);
 			}
 			case E_BLOCK_LIGHT_WEIGHTED_PRESSURE_PLATE:
 			{
-				return std::min(static_cast<unsigned char>(NumberOfEntities), static_cast<unsigned char>(15));
+				return PressurePlatePower::Weighted(NumberOfEntities, 1);
 			}
 			default:
 			{
@@ -125,12 +123,18 @@ namespace PressurePlateHandler
 		const auto Absolute = cChunkDef::RelativeToAbsolute(a_Position, a_Chunk.GetPos());
 		const auto PowerLevel = GetPowerLevel(a_Chunk, Absolute, a_BlockType);  // Get the current power of the platey
 		const auto DelayInfo = ChunkData.GetMechanismDelayInfo(a_Position);
+		const bool IsWeighted = (a_BlockType == E_BLOCK_LIGHT_WEIGHTED_PRESSURE_PLATE) || (a_BlockType == E_BLOCK_HEAVY_WEIGHTED_PRESSURE_PLATE);
 
 		// Resting state?
 		if (DelayInfo == nullptr)
 		{
 			if (PowerLevel == 0)
 			{
+				if (a_Meta != E_META_PRESSURE_PLATE_RAISED)
+				{
+					a_Chunk.SetMeta(a_Position, E_META_PRESSURE_PLATE_RAISED);
+					UpdateAdjustedRelatives(a_Chunk, CurrentlyTicking, a_Position, RelativeAdjacents);
+				}
 				// Nothing happened, back to rest
 				return;
 			}
@@ -145,7 +149,7 @@ namespace PressurePlateHandler
 			ChunkData.SetCachedPowerData(a_Position, PowerLevel);
 
 			// Immediately depress plate
-			a_Chunk.SetMeta(a_Position, E_META_PRESSURE_PLATE_DEPRESSED);
+			a_Chunk.SetMeta(a_Position, IsWeighted ? PowerLevel : static_cast<NIBBLETYPE>(E_META_PRESSURE_PLATE_DEPRESSED));
 
 			UpdateAdjustedRelatives(a_Chunk, CurrentlyTicking, a_Position, RelativeAdjacents);
 			return;
@@ -178,6 +182,10 @@ namespace PressurePlateHandler
 			{
 				// Yes. Update power
 				ChunkData.SetCachedPowerData(a_Position, PowerLevel);
+				if (IsWeighted)
+				{
+					a_Chunk.SetMeta(a_Position, PowerLevel);
+				}
 				UpdateAdjustedRelatives(a_Chunk, CurrentlyTicking, a_Position, RelativeAdjacents);
 			}
 
@@ -200,6 +208,10 @@ namespace PressurePlateHandler
 			{
 				// Yes. Update power
 				ChunkData.SetCachedPowerData(a_Position, PowerLevel);
+				if (IsWeighted)
+				{
+					a_Chunk.SetMeta(a_Position, PowerLevel);
+				}
 				UpdateAdjustedRelatives(a_Chunk, CurrentlyTicking, a_Position, RelativeAdjacents);
 			}
 

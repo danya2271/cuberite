@@ -132,9 +132,7 @@ protected:
 cMinecart::cMinecart(ePayload a_Payload, Vector3d a_Pos):
 	Super(etMinecart, a_Pos, 0.98f, 0.7f),
 	m_Payload(a_Payload),
-	m_LastDamage(0),
-	m_DetectorRailPosition(0, 0, 0),
-	m_bIsOnDetectorRail(false)
+	m_LastDamage(0)
 {
 	SetMass(20.0f);
 	SetGravity(-16.0f);
@@ -181,17 +179,6 @@ void cMinecart::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		return;
 	}
 
-	if (m_bIsOnDetectorRail && !Vector3i(POSX_TOINT, POSY_TOINT, POSZ_TOINT).Equals(m_DetectorRailPosition))
-	{
-		// Check if the rail is still there
-		if (m_World->GetBlock(m_DetectorRailPosition) == E_BLOCK_DETECTOR_RAIL)
-		{
-			m_World->SetBlock(m_DetectorRailPosition, E_BLOCK_DETECTOR_RAIL, m_World->GetBlockMeta(m_DetectorRailPosition) & 0x07);
-		}
-
-		m_bIsOnDetectorRail = false;
-	}
-
 	BLOCKTYPE InsideType;
 	NIBBLETYPE InsideMeta;
 	chunk->GetBlockTypeMeta(relPos, InsideType, InsideMeta);
@@ -235,8 +222,6 @@ void cMinecart::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 			case E_BLOCK_POWERED_RAIL: HandlePoweredRailPhysics(InsideMeta); break;
 			case E_BLOCK_DETECTOR_RAIL:
 			{
-				m_DetectorRailPosition = Vector3i(POSX_TOINT, POSY_TOINT, POSZ_TOINT);
-				m_bIsOnDetectorRail = true;
 				HandleDetectorRailPhysics(InsideMeta, a_Dt);
 				break;
 			}
@@ -674,8 +659,6 @@ void cMinecart::HandlePoweredRailPhysics(NIBBLETYPE a_RailMeta)
 
 void cMinecart::HandleDetectorRailPhysics(NIBBLETYPE a_RailMeta, std::chrono::milliseconds a_Dt)
 {
-	m_World->SetBlockMeta(m_DetectorRailPosition, a_RailMeta | 0x08);
-
 	// No special handling
 	HandleRailPhysics(a_RailMeta & 0x07, a_Dt);
 }
@@ -1275,20 +1258,6 @@ void cMinecart::KilledBy(TakeDamageInfo & a_TDI)
 	Super::KilledBy(a_TDI);
 
 	Destroy();
-}
-
-
-
-
-
-void cMinecart::OnRemoveFromWorld(cWorld & a_World)
-{
-	if (m_bIsOnDetectorRail)
-	{
-		m_World->SetBlock(m_DetectorRailPosition, E_BLOCK_DETECTOR_RAIL, m_World->GetBlockMeta(m_DetectorRailPosition) & 0x07);
-	}
-
-	Super::OnRemoveFromWorld(a_World);
 }
 
 
