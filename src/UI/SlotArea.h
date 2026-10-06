@@ -290,6 +290,7 @@ protected:
 	/** Handles a click in the result slot.
 	Crafts using the current recipe, if possible. */
 	void ClickedResult(cPlayer & a_Player);
+	void NumberClickedResult(cPlayer & a_Player, eClickAction a_ClickAction);
 
 	/** Handles a shift-click in the result slot.
 	Crafts using the current recipe until it changes or no more space for result. */

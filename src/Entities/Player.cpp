@@ -1971,7 +1971,10 @@ void cPlayer::SaveToDisk()
 	for (auto KnownRecipe : m_KnownRecipes)
 	{
 		auto Recipe = cRoot::Get()->GetCraftingRecipes()->GetRecipeById(KnownRecipe);
-		JSON_KnownRecipes.append(Recipe->m_RecipeName);
+		if (Recipe != nullptr)
+		{
+			JSON_KnownRecipes.append(Recipe->m_RecipeName);
+		}
 	}
 
 	Json::Value root;

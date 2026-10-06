@@ -341,7 +341,7 @@ const std::map<AString, UInt32> & cCraftingRecipes::GetRecipeNameMap()
 
 cCraftingRecipes::cRecipe * cCraftingRecipes::GetRecipeById(UInt32 a_RecipeId)
 {
-	return m_Recipes[a_RecipeId];
+	return (a_RecipeId < m_Recipes.size()) ? m_Recipes[a_RecipeId] : nullptr;
 }
 
 

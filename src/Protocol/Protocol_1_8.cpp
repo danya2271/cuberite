@@ -777,6 +777,18 @@ void cProtocol_1_8_0::SendInventorySlot(char a_WindowID, short a_SlotNum, const 
 
 
 
+void cProtocol_1_8_0::SendWindowConfirmation(UInt8 a_WindowID, UInt16 a_TransactionID)
+{
+	cPacketizer Pkt(*this, pktWindowConfirmation);
+	Pkt.WriteBEUInt8(a_WindowID);
+	Pkt.WriteBEUInt16(a_TransactionID);
+	Pkt.WriteBool(true);
+}
+
+
+
+
+
 void cProtocol_1_8_0::SendKeepAlive(UInt32 a_PingID)
 {
 	// Drop the packet if the protocol is not in the Game state yet (caused a client crash):
@@ -1961,6 +1973,7 @@ UInt32 cProtocol_1_8_0::GetPacketID(ePacketType a_PacketType) const
 		case pktWeather:                return 0x2b;
 		case pktWindowClose:            return 0x2e;
 		case pktWindowItems:            return 0x30;
+		case pktWindowConfirmation:     return 0x32;
 		case pktWindowOpen:             return 0x2d;
 		case pktWindowProperty:         return 0x31;
 		default:
@@ -2144,7 +2157,7 @@ bool cProtocol_1_8_0::HandlePacket(cByteBuffer & a_ByteBuffer, UInt32 a_PacketTy
 				case 0x0c: HandlePacketSteerVehicle           (a_ByteBuffer); return true;
 				case 0x0d: HandlePacketWindowClose            (a_ByteBuffer); return true;
 				case 0x0e: HandlePacketWindowClick            (a_ByteBuffer); return true;
-				case 0x0f:  // Confirm transaction - not used in MCS
+				case 0x0f: HandlePacketWindowConfirmation     (a_ByteBuffer); return true;
 				case 0x10: HandlePacketCreativeInventoryAction(a_ByteBuffer); return true;
 				case 0x11: HandlePacketEnchantItem            (a_ByteBuffer); return true;
 				case 0x12: HandlePacketUpdateSign             (a_ByteBuffer); return true;
@@ -2808,7 +2821,22 @@ void cProtocol_1_8_0::HandlePacketWindowClick(cByteBuffer & a_ByteBuffer)
 		}
 	}
 
+	SendWindowConfirmation(WindowID, TransactionID);
 	m_Client->HandleWindowClick(WindowID, SlotNum, Action, Item);
+}
+
+
+
+
+
+void cProtocol_1_8_0::HandlePacketWindowConfirmation(cByteBuffer & a_ByteBuffer)
+{
+	HANDLE_READ(a_ByteBuffer, ReadBEUInt8, UInt8, WindowID);
+	HANDLE_READ(a_ByteBuffer, ReadBEUInt16, UInt16, TransactionID);
+	HANDLE_READ(a_ByteBuffer, ReadBool, bool, Accepted);
+	UNUSED(WindowID);
+	UNUSED(TransactionID);
+	UNUSED(Accepted);
 }
 
 

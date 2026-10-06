@@ -1130,7 +1130,7 @@ bool cProtocol_1_12::HandlePacket(cByteBuffer & a_ByteBuffer, UInt32 a_PacketTyp
 				case 0x03: HandlePacketChatMessage(a_ByteBuffer); return true;
 				case 0x04: HandlePacketClientStatus(a_ByteBuffer); return true;
 				case 0x05: HandlePacketClientSettings(a_ByteBuffer); return true;
-				case 0x06: break;  // Confirm transaction - not used in Cuberite
+				case 0x06: HandlePacketWindowConfirmation(a_ByteBuffer); return true;
 				case 0x07: HandlePacketEnchantItem(a_ByteBuffer); return true;
 				case 0x08: HandlePacketWindowClick(a_ByteBuffer); return true;
 				case 0x09: HandlePacketWindowClose(a_ByteBuffer); return true;
@@ -1259,7 +1259,7 @@ bool cProtocol_1_12_1::HandlePacket(cByteBuffer & a_ByteBuffer, UInt32 a_PacketT
 				case 0x02: HandlePacketChatMessage(a_ByteBuffer); return true;
 				case 0x03: HandlePacketClientStatus(a_ByteBuffer); return true;
 				case 0x04: HandlePacketClientSettings(a_ByteBuffer); return true;
-				case 0x05: break;  // Confirm transaction - not used in Cuberite
+				case 0x05: HandlePacketWindowConfirmation(a_ByteBuffer); return true;
 				case 0x06: HandlePacketEnchantItem(a_ByteBuffer); return true;
 				case 0x07: HandlePacketWindowClick(a_ByteBuffer); return true;
 				case 0x08: HandlePacketWindowClose(a_ByteBuffer); return true;

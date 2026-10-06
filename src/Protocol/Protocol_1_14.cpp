@@ -495,6 +495,7 @@ UInt32 cProtocol_1_14::GetPacketID(ePacketType a_PacketType) const
 		case cProtocol::pktUpdateSign:           return 0x2F;
 		case cProtocol::pktWeather:              return 0x1E;
 		case cProtocol::pktWindowItems:          return 0x14;
+		case cProtocol::pktWindowConfirmation:   return 0x12;
 		case cProtocol::pktWindowOpen:           return 0x2E;
 		case cProtocol::pktWindowProperty:       return 0x15;
 		default: return Super::GetPacketID(a_PacketType);
@@ -944,7 +945,7 @@ bool cProtocol_1_14::HandlePacket(cByteBuffer & a_ByteBuffer, UInt32 a_PacketTyp
 		case 0x04: HandlePacketClientStatus(a_ByteBuffer); return true;
 		case 0x05: HandlePacketClientSettings(a_ByteBuffer); return true;
 		case 0x06: HandlePacketTabComplete(a_ByteBuffer); return true;
-		case 0x07: break;  // Confirm transaction - not used in Cuberite
+		case 0x07: HandlePacketWindowConfirmation(a_ByteBuffer); return true;
 		case 0x08: HandlePacketEnchantItem(a_ByteBuffer); return true;
 		case 0x09: HandlePacketWindowClick(a_ByteBuffer); return true;
 		case 0x0A: HandlePacketWindowClose(a_ByteBuffer); return true;

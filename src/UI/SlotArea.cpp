@@ -517,6 +517,11 @@ cSlotAreaCrafting::cSlotAreaCrafting(int a_GridSize, cWindow & a_ParentWindow) :
 
 void cSlotAreaCrafting::Clicked(cPlayer & a_Player, int a_SlotNum, eClickAction a_ClickAction, const cItem & a_ClickedItem)
 {
+	if (a_Player.IsGameModeSpectator())
+	{
+		m_ParentWindow.SendWholeWindow(*a_Player.GetClientHandle());
+		return;
+	}
 	if (a_ClickAction == caMiddleClick)
 	{
 		MiddleClicked(a_Player, a_SlotNum);
@@ -534,7 +539,11 @@ void cSlotAreaCrafting::Clicked(cPlayer & a_Player, int a_SlotNum, eClickAction 
 		{
 			DropClickedResult(a_Player);
 		}
-		else
+		else if ((a_ClickAction >= caNumber1) && (a_ClickAction <= caNumber9))
+		{
+			NumberClickedResult(a_Player, a_ClickAction);
+		}
+		else if ((a_ClickAction == caLeftClick) || (a_ClickAction == caRightClick))
 		{
 			ClickedResult(a_Player);
 		}
@@ -618,7 +627,11 @@ void cSlotAreaCrafting::ClickedResult(cPlayer & a_Player)
 
 	// Get the current recipe:
 	cCraftingRecipe & Recipe = GetRecipeForPlayer(a_Player);
-	const cItem & Result = Recipe.GetResult();
+	const cItem Result = Recipe.GetResult();
+	if (Result.IsEmpty())
+	{
+		return;
+	}
 
 	cItem * PlayerSlots = GetPlayerSlots(a_Player) + 1;
 	cCraftingGrid Grid(PlayerSlots, m_GridSize, m_GridSize);
@@ -648,6 +661,40 @@ void cSlotAreaCrafting::ClickedResult(cPlayer & a_Player)
 	UpdateRecipe(a_Player);
 
 	// We're done. Send all changes to the client and bail out:
+	m_ParentWindow.BroadcastWholeWindow();
+}
+
+
+
+
+
+void cSlotAreaCrafting::NumberClickedResult(cPlayer & a_Player, eClickAction a_ClickAction)
+{
+	const auto HotbarSlot = static_cast<int>(a_ClickAction - caNumber1);
+	auto & Inventory = a_Player.GetInventory();
+	const cItem HotbarItem = Inventory.GetHotbarSlot(HotbarSlot);
+	auto & Recipe = GetRecipeForPlayer(a_Player);
+	const cItem Result = Recipe.GetResult();
+	if (Result.IsEmpty())
+	{
+		return;
+	}
+	Inventory.SetHotbarSlot(HotbarSlot, Result);
+	if (!HotbarItem.IsEmpty())
+	{
+		if (Inventory.HowManyCanFit(HotbarItem, cInventory::invInventoryOffset, cInventory::invShieldOffset - 1) < HotbarItem.m_ItemCount)
+		{
+			Inventory.SetHotbarSlot(HotbarSlot, HotbarItem);
+			return;
+		}
+		Inventory.AddItem(HotbarItem);
+	}
+	auto PlayerSlots = GetPlayerSlots(a_Player) + 1;
+	cCraftingGrid Grid(PlayerSlots, m_GridSize, m_GridSize);
+	Recipe.ConsumeIngredients(Grid);
+	Grid.CopyToItems(PlayerSlots);
+	HandleCraftItem(Result, a_Player);
+	UpdateRecipe(a_Player);
 	m_ParentWindow.BroadcastWholeWindow();
 }
 
@@ -708,7 +755,11 @@ void cSlotAreaCrafting::DropClickedResult(cPlayer & a_Player)
 {
 	// Get the current recipe:
 	cCraftingRecipe & Recipe = GetRecipeForPlayer(a_Player);
-	const cItem & Result = Recipe.GetResult();
+	const cItem Result = Recipe.GetResult();
+	if (Result.IsEmpty() || cRoot::Get()->GetPluginManager()->CallHookPlayerTossingItem(a_Player))
+	{
+		return;
+	}
 
 	cItem * PlayerSlots = GetPlayerSlots(a_Player) + 1;
 	cCraftingGrid Grid(PlayerSlots, m_GridSize, m_GridSize);
@@ -783,11 +834,19 @@ void cSlotAreaCrafting::HandleCraftItem(const cItem & a_Result, cPlayer & a_Play
 
 void cSlotAreaCrafting::LoadRecipe(cPlayer & a_Player, UInt32 a_RecipeId)
 {
+	if (a_Player.IsGameModeSpectator())
+	{
+		return;
+	}
 	if (a_RecipeId == 0)
 	{
 		return;
 	}
 	auto Recipe = cRoot::Get()->GetCraftingRecipes()->GetRecipeById(a_RecipeId);
+	if ((Recipe == nullptr) || (Recipe->m_Width > m_GridSize) || (Recipe->m_Height > m_GridSize))
+	{
+		return;
+	}
 
 	int NumItems = 0;
 	ClearCraftingGrid(a_Player);
@@ -821,6 +880,10 @@ void cSlotAreaCrafting::LoadRecipe(cPlayer & a_Player, UInt32 a_RecipeId)
 				}
 			}
 		}
+		if ((pos < 1) || (pos > m_GridSize * m_GridSize) || !GetSlot(pos, a_Player)->IsEmpty())
+		{
+			break;
+		}
 		SetSlot(pos, a_Player, Item);
 		a_Player.GetInventory().RemoveItem(Item);
 	}
@@ -837,8 +900,9 @@ void cSlotAreaCrafting::ClearCraftingGrid(cPlayer & a_Player)
 		auto Item = GetSlot(pos, a_Player);
 		if (Item->m_ItemCount > 0)
 		{
-			a_Player.GetInventory().AddItem(*Item);
-			SetSlot(pos, a_Player, cItem());
+			cItem Remaining(*Item);
+			Remaining.AddCount(-a_Player.GetInventory().AddItem(Remaining));
+			SetSlot(pos, a_Player, Remaining);
 		}
 	}
 }

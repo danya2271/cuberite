@@ -207,6 +207,8 @@ protected:
 	virtual void HandlePacketUseEntity              (cByteBuffer & a_ByteBuffer);
 	virtual void HandlePacketEnchantItem            (cByteBuffer & a_ByteBuffer);
 	virtual void HandlePacketWindowClick            (cByteBuffer & a_ByteBuffer);
+	void HandlePacketWindowConfirmation(cByteBuffer & a_ByteBuffer);
+	void SendWindowConfirmation(UInt8 a_WindowID, UInt16 a_TransactionID);
 	virtual void HandlePacketWindowClose            (cByteBuffer & a_ByteBuffer);
 
 	/** Parses Vanilla plugin messages into specific ClientHandle calls.

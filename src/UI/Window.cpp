@@ -384,6 +384,7 @@ void cWindow::BroadcastSlot(cSlotArea * a_Area, int a_LocalSlotNum)
 void cWindow::SendWholeWindow(cClientHandle & a_Client)
 {
 	a_Client.SendWholeInventory(*this);
+	a_Client.SendInventorySlot(-1, -1, a_Client.GetPlayer()->GetDraggingItem());
 }
 
 
@@ -635,6 +636,11 @@ void cWindow::OnLeftPaintEnd(cPlayer & a_Player)
 	// distribute as many items as possible
 
 	const cSlotNums & SlotNums = a_Player.GetInventoryPaintSlots();
+	if (SlotNums.empty())
+	{
+		SendWholeWindow(*a_Player.GetClientHandle());
+		return;
+	}
 	cItem ToDistribute(a_Player.GetDraggingItem());
 	char ToEachSlot = ToDistribute.m_ItemCount / static_cast<char>(SlotNums.size());
 

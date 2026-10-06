@@ -131,6 +131,7 @@ AString cPacketizer::PacketTypeToStr(cProtocol::ePacketType a_PacketType)
 		case cProtocol::pktUseBed:                 return "pktUseBed";
 		case cProtocol::pktWeather:                return "pktWeather";
 		case cProtocol::pktWindowItems:            return "pktWindowItems";
+		case cProtocol::pktWindowConfirmation:     return "pktWindowConfirmation";
 		case cProtocol::pktWindowClose:            return "pktWindowClose";
 		case cProtocol::pktWindowOpen:             return "pktWindowOpen";
 		case cProtocol::pktWindowProperty:         return "pktWindowProperty";

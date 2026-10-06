@@ -129,6 +129,7 @@ public:
 		pktUseBed,
 		pktWeather,
 		pktWindowItems,
+		pktWindowConfirmation,
 		pktWindowClose,
 		pktWindowOpen,
 		pktWindowProperty

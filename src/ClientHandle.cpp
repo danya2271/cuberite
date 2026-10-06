@@ -1730,6 +1730,13 @@ void cClientHandle::HandleWindowClick(UInt8 a_WindowID, Int16 a_SlotNum, eClickA
 	}
 	m_Player->AddKnownItem(a_HeldItem);
 	Window->Clicked(*m_Player, a_WindowID, a_SlotNum, a_ClickAction, a_HeldItem);
+	if ((m_Player->GetWindow() == Window) &&
+		(a_ClickAction != caLeftPaintBegin) && (a_ClickAction != caRightPaintBegin) &&
+		(a_ClickAction != caMiddlePaintBegin) && (a_ClickAction != caLeftPaintProgress) &&
+		(a_ClickAction != caRightPaintProgress) && (a_ClickAction != caMiddlePaintProgress))
+	{
+		Window->SendWholeWindow(*this);
+	}
 }
 
 
@@ -3229,6 +3236,7 @@ void cClientHandle::HandleCraftRecipe(UInt32 a_RecipeId)
 	{
 		static_cast<cCraftingWindow *>(Window)->LoadRecipe(*m_Player, a_RecipeId);
 	}
+	Window->SendWholeWindow(*this);
 }
 
 

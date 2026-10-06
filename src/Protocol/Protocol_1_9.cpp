@@ -728,6 +728,7 @@ UInt32 cProtocol_1_9_0::GetPacketID(cProtocol::ePacketType a_Packet) const
 		case pktWeather:                return 0x1e;
 		case pktWindowClose:            return 0x12;
 		case pktWindowItems:            return 0x14;
+		case pktWindowConfirmation:     return 0x11;
 		case pktWindowOpen:             return 0x13;
 		case pktWindowProperty:         return 0x15;
 
@@ -833,7 +834,7 @@ bool cProtocol_1_9_0::HandlePacket(cByteBuffer & a_ByteBuffer, UInt32 a_PacketTy
 				case 0x02: HandlePacketChatMessage            (a_ByteBuffer); return true;
 				case 0x03: HandlePacketClientStatus           (a_ByteBuffer); return true;
 				case 0x04: HandlePacketClientSettings         (a_ByteBuffer); return true;
-				case 0x05: break;  // Confirm transaction - not used in MCS
+				case 0x05: HandlePacketWindowConfirmation     (a_ByteBuffer); return true;
 				case 0x06: HandlePacketEnchantItem            (a_ByteBuffer); return true;
 				case 0x07: HandlePacketWindowClick            (a_ByteBuffer); return true;
 				case 0x08: HandlePacketWindowClose            (a_ByteBuffer); return true;
@@ -1240,6 +1241,7 @@ void cProtocol_1_9_0::HandlePacketWindowClick(cByteBuffer & a_ByteBuffer)
 		}
 	}
 
+	SendWindowConfirmation(WindowID, TransactionID);
 	m_Client->HandleWindowClick(WindowID, SlotNum, Action, Item);
 }
 
