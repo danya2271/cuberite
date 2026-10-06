@@ -23,13 +23,33 @@ class cParsedNBT;
 
 
 
-class cFireworkItem
+struct cFireworkExplosion
+{
+	bool m_HasFlicker = false;
+	bool m_HasTrail = false;
+	NIBBLETYPE m_Type = 0;
+	std::vector<int> m_Colours;
+	std::vector<int> m_FadeColours;
+
+	bool operator == (const cFireworkExplosion & a_Other) const
+	{
+		return (m_HasFlicker == a_Other.m_HasFlicker) &&
+			(m_HasTrail == a_Other.m_HasTrail) &&
+			(m_Type == a_Other.m_Type) &&
+			(m_Colours == a_Other.m_Colours) &&
+			(m_FadeColours == a_Other.m_FadeColours);
+	}
+};
+
+
+
+
+
+class cFireworkItem : public cFireworkExplosion
 {
 public:
 	cFireworkItem(void) :
-		m_HasFlicker(false),
-		m_HasTrail(false),
-		m_Type(0),
+		m_HasExplosion(false),
 		m_FlightTimeInTicks(0)
 	{
 	}
@@ -37,21 +57,25 @@ public:
 	inline void CopyFrom(const cFireworkItem & a_Item)
 	{
 		m_FlightTimeInTicks = a_Item.m_FlightTimeInTicks;
+		m_HasExplosion = a_Item.m_HasExplosion;
 		m_HasFlicker = a_Item.m_HasFlicker;
 		m_HasTrail = a_Item.m_HasTrail;
 		m_Type = a_Item.m_Type;
 		m_Colours = a_Item.m_Colours;
 		m_FadeColours = a_Item.m_FadeColours;
+		m_AdditionalExplosions = a_Item.m_AdditionalExplosions;
 	}
 
 	inline void EmptyData(void)
 	{
 		m_FlightTimeInTicks = 0;
+		m_HasExplosion = false;
 		m_HasFlicker = false;
 		m_Type = 0;
 		m_HasTrail = false;
 		m_Colours.clear();
 		m_FadeColours.clear();
+		m_AdditionalExplosions.clear();
 	}
 
 	inline bool IsEqualTo(const cFireworkItem & a_Item) const
@@ -59,11 +83,13 @@ public:
 		return
 			(
 			(m_FlightTimeInTicks == a_Item.m_FlightTimeInTicks) &&
+			((m_HasExplosion || !m_Colours.empty()) == (a_Item.m_HasExplosion || !a_Item.m_Colours.empty())) &&
 			(m_HasFlicker == a_Item.m_HasFlicker) &&
 			(m_HasTrail == a_Item.m_HasTrail) &&
 			(m_Type == a_Item.m_Type) &&
 			(m_Colours == a_Item.m_Colours) &&
-			(m_FadeColours == a_Item.m_FadeColours)
+			(m_FadeColours == a_Item.m_FadeColours) &&
+			(m_AdditionalExplosions == a_Item.m_AdditionalExplosions)
 			);
 	}
 
@@ -88,10 +114,7 @@ public:
 	/** Returns a colour code for fireworks used by the network code */
 	static int GetVanillaColourCodeFromDye(NIBBLETYPE a_DyeMeta);
 
-	bool m_HasFlicker;
-	bool m_HasTrail;
-	NIBBLETYPE m_Type;
+	bool m_HasExplosion;
 	short m_FlightTimeInTicks;
-	std::vector<int> m_Colours;
-	std::vector<int> m_FadeColours;
+	std::vector<cFireworkExplosion> m_AdditionalExplosions;
 };

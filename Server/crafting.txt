@@ -919,12 +919,12 @@ LeatherBoots = LeatherBoots^-1, * | Dye^-1, * | Dye^-1, * | Dye^-1, * | Dye^-1, 
 # (Best not to add non-vanilla items to this as it will cause internal firework data handling code to log warnings)
 
 # Ballistic firework rockets - plain and with firework star, all with 1 - 3 gunpowder
-FireworkRocket   = FireworkStar, * | Paper, * | Gunpowder, *
-FireworkRocket   = FireworkStar, * | Paper, * | Gunpowder, * | Gunpowder, *
-FireworkRocket   = FireworkStar, * | Paper, * | Gunpowder, * | Gunpowder, * | Gunpowder, *
-FireworkRocket   = Paper, * | Gunpowder, *
-FireworkRocket   = Paper, * | Gunpowder, * | Gunpowder, *
-FireworkRocket   = Paper, * | Gunpowder, * | Gunpowder, * | Gunpowder, *
+FireworkRocket, 3 = FireworkStar, * | Paper, * | Gunpowder, *
+FireworkRocket, 3 = FireworkStar, * | Paper, * | Gunpowder, * | Gunpowder, *
+FireworkRocket, 3 = FireworkStar, * | Paper, * | Gunpowder, * | Gunpowder, * | Gunpowder, *
+FireworkRocket, 3 = Paper, * | Gunpowder, *
+FireworkRocket, 3 = Paper, * | Gunpowder, * | Gunpowder, *
+FireworkRocket, 3 = Paper, * | Gunpowder, * | Gunpowder, * | Gunpowder, *
 
 # Radioactive firework stars
 # Plain powder and dye

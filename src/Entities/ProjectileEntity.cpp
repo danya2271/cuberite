@@ -136,15 +136,11 @@ public:
 	bool operator () (cEntity & a_Entity)
 	{
 		if (
-			(&a_Entity == m_Projectile) ||          // Do not check collisions with self
-			(a_Entity.GetUniqueID() == m_Projectile->GetCreatorUniqueID())  // Do not check whoever shot the projectile
+			(&a_Entity == m_Projectile) ||
+			((a_Entity.GetUniqueID() == m_Projectile->GetCreatorUniqueID()) && (m_Projectile->GetTicksAlive() <= 5))
 		)
 		{
-			// Don't check creator only for the first 5 ticks so that projectiles can collide with the creator
-			if (m_Projectile->GetTicksAlive() <= 5)
-			{
-				return false;
-			}
+			return false;
 		}
 
 		auto EntBox = a_Entity.GetBoundingBox();
@@ -168,7 +164,8 @@ public:
 				static_cast<cPlayer &>(a_Entity).IsGameModeSpectator()
 			) &&
 			!a_Entity.IsBoat() &&
-			!a_Entity.IsEnderCrystal()
+			!a_Entity.IsEnderCrystal() &&
+			!((m_Projectile->GetProjectileKind() == cProjectileEntity::pkArrow) && a_Entity.IsProjectile() && (static_cast<cProjectileEntity &>(a_Entity).GetProjectileKind() == cProjectileEntity::pkGhastFireball))
 		)
 		{
 			// Not an entity that interacts with a projectile
@@ -276,8 +273,7 @@ std::unique_ptr<cProjectileEntity> cProjectileEntity::Create(
 		case pkWitherSkull:   return std::make_unique<cWitherSkullEntity>     (a_Creator, a_Pos, Speed);
 		case pkFirework:
 		{
-			ASSERT(a_Item != nullptr);
-			if (a_Item->m_FireworkItem.m_Colours.empty())
+			if (a_Item == nullptr)
 			{
 				return nullptr;
 			}
@@ -386,7 +382,7 @@ void cProjectileEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a
 
 	// Test for entity collisions:
 	cProjectileEntityCollisionCallback EntityCollisionCallback(this, Pos, NextPos);
-	a_Chunk.ForEachEntity(EntityCollisionCallback);
+	m_World->ForEachEntityInBox(GetBoundingBox().Union(cBoundingBox(NextPos, GetWidth(), GetHeight())), EntityCollisionCallback);
 	if (EntityCollisionCallback.HasHit())
 	{
 		// An entity was hit:
@@ -407,7 +403,6 @@ void cProjectileEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a
 			return;  // We were destroyed by an override of OnHitEntity
 		}
 	}
-	// TODO: Test the entities in the neighboring chunks, too
 
 	// Trace the tick's worth of movement as a line:
 	cProjectileTracerCallback TracerCallback(this);
@@ -455,4 +450,3 @@ void cProjectileEntity::CollectedBy(cPlayer & a_Dest)
 	// Overriden in arrow
 	UNUSED(a_Dest);
 }
-

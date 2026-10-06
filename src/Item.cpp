@@ -261,8 +261,18 @@ void cItem::GetJson(Json::Value & a_OutValue) const
 			a_OutValue["Trail"] = m_FireworkItem.m_HasTrail;
 			a_OutValue["Type"] = m_FireworkItem.m_Type;
 			a_OutValue["FlightTimeInTicks"] = m_FireworkItem.m_FlightTimeInTicks;
+			a_OutValue["HasExplosion"] = m_FireworkItem.m_HasExplosion;
 			a_OutValue["Colours"] = m_FireworkItem.ColoursToString(m_FireworkItem);
 			a_OutValue["FadeColours"] = m_FireworkItem.FadeColoursToString(m_FireworkItem);
+			a_OutValue["AdditionalExplosions"] = Json::arrayValue;
+			for (const auto & Explosion : m_FireworkItem.m_AdditionalExplosions)
+			{
+				cItem Star(E_ITEM_FIREWORK_STAR, 1);
+				static_cast<cFireworkExplosion &>(Star.m_FireworkItem) = Explosion;
+				Json::Value ExplosionJson;
+				Star.GetJson(ExplosionJson);
+				a_OutValue["AdditionalExplosions"].append(ExplosionJson);
+			}
 		}
 
 		a_OutValue["RepairCost"] = m_RepairCost;
@@ -303,12 +313,28 @@ void cItem::FromJson(const Json::Value & a_Value)
 
 		if ((m_ItemType == E_ITEM_FIREWORK_ROCKET) || (m_ItemType == E_ITEM_FIREWORK_STAR))
 		{
+			m_FireworkItem.EmptyData();
+			m_FireworkItem.m_HasExplosion = a_Value.get("HasExplosion", false).asBool();
 			m_FireworkItem.m_HasFlicker = a_Value.get("Flicker", false).asBool();
 			m_FireworkItem.m_HasTrail = a_Value.get("Trail", false).asBool();
 			m_FireworkItem.m_Type = static_cast<NIBBLETYPE>(a_Value.get("Type", 0).asInt());
 			m_FireworkItem.m_FlightTimeInTicks = static_cast<short>(a_Value.get("FlightTimeInTicks", 0).asInt());
 			m_FireworkItem.ColoursFromString(a_Value.get("Colours", "").asString(), m_FireworkItem);
 			m_FireworkItem.FadeColoursFromString(a_Value.get("FadeColours", "").asString(), m_FireworkItem);
+			const auto & Explosions = a_Value["AdditionalExplosions"];
+			if (Explosions.isArray())
+			{
+				for (const auto & ExplosionJson : Explosions)
+				{
+					cFireworkItem Explosion;
+					Explosion.m_HasFlicker = ExplosionJson.get("Flicker", false).asBool();
+					Explosion.m_HasTrail = ExplosionJson.get("Trail", false).asBool();
+					Explosion.m_Type = static_cast<NIBBLETYPE>(ExplosionJson.get("Type", 0).asInt());
+					cFireworkItem::ColoursFromString(ExplosionJson.get("Colours", "").asString(), Explosion);
+					cFireworkItem::FadeColoursFromString(ExplosionJson.get("FadeColours", "").asString(), Explosion);
+					m_FireworkItem.m_AdditionalExplosions.push_back(Explosion);
+				}
+			}
 		}
 
 		m_RepairCost = a_Value.get("RepairCost", 0).asInt();

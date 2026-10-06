@@ -165,12 +165,26 @@ public:
 		eBlockFace a_ClickedBlockFace
 	) const override
 	{
-		if (a_World->GetBlock(a_ClickedBlockPos) == E_BLOCK_AIR)
+		Vector3d Position;
+		if (static_cast<cEntity *>(a_Player)->IsElytraFlying())
+		{
+			Position = a_Player->GetPosition();
+		}
+		else if ((a_ClickedBlockFace >= 0) && (a_World->GetBlock(a_ClickedBlockPos) != E_BLOCK_AIR))
+		{
+			const auto LaunchBlock = AddFaceDirection(a_ClickedBlockPos, a_ClickedBlockFace);
+			if (!cChunkDef::IsValidHeight(LaunchBlock))
+			{
+				return false;
+			}
+			Position = Vector3d(LaunchBlock) + Vector3d(0.5, 0.1, 0.5);
+		}
+		else
 		{
 			return false;
 		}
 
-		if (a_World->CreateProjectile(Vector3d(a_ClickedBlockPos) + Vector3d(0.5, 1, 0.5), m_ProjectileKind, a_Player, &a_Player->GetEquippedItem()) == 0)
+		if (a_World->CreateProjectile(Position, m_ProjectileKind, a_Player, &a_HeldItem) == cEntity::INVALID_ID)
 		{
 			return false;
 		}

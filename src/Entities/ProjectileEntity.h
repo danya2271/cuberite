@@ -123,7 +123,7 @@ protected:
 		{
 		}
 
-		const UInt32 m_UniqueID;
+		UInt32 m_UniqueID;
 		AString m_Name;
 		cEnchantments m_Enchantments;
 	};

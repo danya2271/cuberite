@@ -444,7 +444,10 @@ void cProtocol_1_12::WriteEntityMetadata(cPacketizer & a_Pkt, const cEntity & a_
 					a_Pkt.WriteBEUInt8(METADATA_TYPE_ITEM);
 					WriteItem(a_Pkt, static_cast<const cFireworkEntity &>(Projectile).GetItem());
 
-					// FIREWORK_BOOSTED_ENTITY_ID, in 1.11.1 only
+					a_Pkt.WriteBEUInt8(FIREWORK_BOOSTED_ENTITY_ID);
+					a_Pkt.WriteBEUInt8(METADATA_TYPE_VARINT);
+					const auto Boosted = static_cast<const cFireworkEntity &>(Projectile).GetBoostedEntityID();
+					a_Pkt.WriteVarInt32(Boosted == cEntity::INVALID_ID ? 0 : Boosted);
 					break;
 				}
 				case cProjectileEntity::pkSplashPotion:

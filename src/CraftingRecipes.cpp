@@ -675,6 +675,37 @@ cCraftingRecipes::cRecipe * cCraftingRecipes::FindRecipe(const cItem * a_Craftin
 {
 	ASSERT(a_GridWidth <= MAX_GRID_WIDTH);
 	ASSERT(a_GridHeight <= MAX_GRID_HEIGHT);
+	int Paper = 0;
+	int Gunpowder = 0;
+	bool RocketIngredients = true;
+	auto Rocket = std::make_unique<cRecipe>();
+	Rocket->m_Result = cItem(E_ITEM_FIREWORK_ROCKET, 3);
+	Rocket->m_Width = a_GridWidth;
+	Rocket->m_Height = a_GridHeight;
+	for (int Row = 0; Row < a_GridHeight; ++Row)
+	{
+		for (int Column = 0; Column < a_GridWidth; ++Column)
+		{
+			const auto & Item = a_CraftingGrid[Column + Row * a_GridWidth];
+			if (Item.IsEmpty())
+			{
+				continue;
+			}
+			switch (Item.m_ItemType)
+			{
+				case E_ITEM_PAPER: ++Paper; break;
+				case E_ITEM_GUNPOWDER: ++Gunpowder; break;
+				case E_ITEM_FIREWORK_STAR: break;
+				default: RocketIngredients = false; break;
+			}
+			Rocket->m_Ingredients.push_back({Item.CopyOne(), Column, Row});
+		}
+	}
+	if (RocketIngredients && (Paper == 1) && (Gunpowder >= 1) && (Gunpowder <= 3))
+	{
+		HandleFireworks(a_CraftingGrid, Rocket.get(), a_GridWidth, 0, 0);
+		return Rocket.release();
+	}
 
 	// Get the real bounds of the crafting grid:
 	int GridLeft = MAX_GRID_WIDTH, GridTop = MAX_GRID_HEIGHT;
@@ -688,6 +719,10 @@ cCraftingRecipes::cRecipe * cCraftingRecipes::FindRecipe(const cItem * a_Craftin
 			GridLeft   = std::min(x, GridLeft);
 			GridTop    = std::min(y, GridTop);
 		}
+	}
+	if (GridLeft == MAX_GRID_WIDTH)
+	{
+		return nullptr;
 	}
 	int GridWidth = GridRight - GridLeft + 1;
 	int GridHeight = GridBottom - GridTop + 1;
@@ -888,6 +923,8 @@ void cCraftingRecipes::HandleFireworks(const cItem * a_CraftingGrid, cCraftingRe
 
 	if (a_Recipe->m_Result.m_ItemType == E_ITEM_FIREWORK_ROCKET)
 	{
+		a_Recipe->m_Result.m_FireworkItem.EmptyData();
+		bool FoundStar = false;
 		for (cRecipeSlots::const_iterator itr = a_Recipe->m_Ingredients.begin(); itr != a_Recipe->m_Ingredients.end(); ++itr)
 		{
 			switch (itr->m_Item.m_ItemType)
@@ -896,7 +933,17 @@ void cCraftingRecipes::HandleFireworks(const cItem * a_CraftingGrid, cCraftingRe
 				{
 					// Result was a rocket, found a star - copy star data to rocket data
 					int GridID = (itr->x + a_OffsetX) + a_GridStride * (itr->y + a_OffsetY);
-					a_Recipe->m_Result.m_FireworkItem.CopyFrom(a_CraftingGrid[GridID].m_FireworkItem);
+					const auto & Star = a_CraftingGrid[GridID].m_FireworkItem;
+					if (!FoundStar)
+					{
+						static_cast<cFireworkExplosion &>(a_Recipe->m_Result.m_FireworkItem) = Star;
+						a_Recipe->m_Result.m_FireworkItem.m_HasExplosion = true;
+						FoundStar = true;
+					}
+					else
+					{
+						a_Recipe->m_Result.m_FireworkItem.m_AdditionalExplosions.push_back(Star);
+					}
 					break;
 				}
 				case E_ITEM_GUNPOWDER:

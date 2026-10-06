@@ -850,7 +850,11 @@ void cProtocol_1_13::WriteEntityMetadata(cPacketizer & a_Pkt, const cEntity & a_
 				}
 				case cProjectileEntity::pkFirework:
 				{
-					// TODO
+					const auto & Firework = static_cast<const cFireworkEntity &>(Projectile);
+					WriteEntityMetadata(a_Pkt, EntityMetadata::FireworkInfo, EntityMetadataType::Item);
+					WriteItem(a_Pkt, Firework.GetItem());
+					WriteEntityMetadata(a_Pkt, EntityMetadata::FireworkBoostedEntityId, EntityMetadataType::VarInt);
+					a_Pkt.WriteVarInt32(Firework.GetBoostedEntityID() == cEntity::INVALID_ID ? 0 : Firework.GetBoostedEntityID());
 					break;
 				}
 				case cProjectileEntity::pkSplashPotion:

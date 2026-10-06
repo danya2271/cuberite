@@ -30,18 +30,19 @@ public:  // tolua_export
 
 	cGhastFireballEntity(cEntity * a_Creator, Vector3d a_Pos, Vector3d a_Speed);
 
+	void Deflect(cEntity & a_Attacker, Vector3d a_Direction);
+
 protected:
 
-	void Explode(Vector3i a_Block);
+	void Explode(Vector3d a_Position);
 
 	// cProjectileEntity overrides:
 	virtual void OnHitSolidBlock(Vector3d a_HitPos, eBlockFace a_HitFace) override;
 	virtual void OnHitEntity(cEntity & a_EntityHit, Vector3d a_HitPos) override;
 
-	// TODO: Deflecting the fireballs by arrow- or sword- hits
+	virtual bool DoTakeDamage(TakeDamageInfo & a_TDI) override;
 
 } ;  // tolua_export
-
 
 
 

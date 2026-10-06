@@ -19,6 +19,7 @@ Implements the 1.14 protocol classes:
 #include "../BlockEntities/BlockEntity.h"
 
 #include "../Entities/ArrowEntity.h"
+#include "../Entities/FireworkEntity.h"
 #include "../Entities/ItemFrame.h"
 #include "../Mobs/Bat.h"
 #include "../Entities/Boat.h"
@@ -1164,7 +1165,13 @@ void cProtocol_1_14::WriteEntityMetadata(cPacketizer & a_Pkt, const cEntity & a_
 				}
 				case cProjectileEntity::pkFirework:
 				{
-					// TODO
+					const auto & Firework = static_cast<const cFireworkEntity &>(Projectile);
+					WriteEntityMetadata(a_Pkt, EntityMetadata::FireworkInfo, EntityMetadataType::Item);
+					WriteItem(a_Pkt, Firework.GetItem());
+					WriteEntityMetadata(a_Pkt, EntityMetadata::FireworkBoostedEntityId, EntityMetadataType::OptVarInt);
+					a_Pkt.WriteVarInt32(Firework.GetBoostedEntityID() == cEntity::INVALID_ID ? 0 : Firework.GetBoostedEntityID() + 1);
+					WriteEntityMetadata(a_Pkt, EntityMetadata::FireworkFromCrossbow, EntityMetadataType::Boolean);
+					a_Pkt.WriteBool(false);
 					break;
 				}
 				case cProjectileEntity::pkSplashPotion:

@@ -44,6 +44,8 @@ public:  // tolua_export
 	/** Sets the number of ticks left until the firework explosion. */
 	void SetTicksToExplosion(int a_TicksToExplosion) { m_TicksToExplosion = a_TicksToExplosion; }
 
+	UInt32 GetBoostedEntityID(void) const { return m_BoostedEntityID; }
+
 	// tolua_end
 
 protected:
@@ -56,9 +58,9 @@ private:
 
 	int m_TicksToExplosion;
 	cItem m_FireworkItem;
+	UInt32 m_BoostedEntityID;
 
 };  // tolua_export
-
 
 
 

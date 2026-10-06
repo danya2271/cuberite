@@ -17,19 +17,32 @@ void cFireworkItem::WriteToNBTCompound(const cFireworkItem & a_FireworkItem, cFa
 			a_Writer.BeginCompound("Fireworks");
 			a_Writer.AddByte("Flight", static_cast<Byte>(a_FireworkItem.m_FlightTimeInTicks / 20));
 			a_Writer.BeginList("Explosions", TAG_Compound);
-			a_Writer.BeginCompound("");
-			a_Writer.AddByte("Flicker", a_FireworkItem.m_HasFlicker);
-			a_Writer.AddByte("Trail", a_FireworkItem.m_HasTrail);
-			a_Writer.AddByte("Type", a_FireworkItem.m_Type);
-			if (!a_FireworkItem.m_Colours.empty())
+			if (a_FireworkItem.m_HasExplosion || !a_FireworkItem.m_Colours.empty())
 			{
+				a_Writer.BeginCompound("");
+				a_Writer.AddByte("Flicker", a_FireworkItem.m_HasFlicker);
+				a_Writer.AddByte("Trail", a_FireworkItem.m_HasTrail);
+				a_Writer.AddByte("Type", a_FireworkItem.m_Type);
 				a_Writer.AddIntArray("Colors", a_FireworkItem.m_Colours.data(), a_FireworkItem.m_Colours.size());
+				if (!a_FireworkItem.m_FadeColours.empty())
+				{
+					a_Writer.AddIntArray("FadeColors", a_FireworkItem.m_FadeColours.data(), a_FireworkItem.m_FadeColours.size());
+				}
+				a_Writer.EndCompound();
 			}
-			if (!a_FireworkItem.m_FadeColours.empty())
+			for (const auto & Explosion : a_FireworkItem.m_AdditionalExplosions)
 			{
-				a_Writer.AddIntArray("FadeColors", a_FireworkItem.m_FadeColours.data(), a_FireworkItem.m_FadeColours.size());
+				a_Writer.BeginCompound("");
+				a_Writer.AddByte("Flicker", Explosion.m_HasFlicker);
+				a_Writer.AddByte("Trail", Explosion.m_HasTrail);
+				a_Writer.AddByte("Type", Explosion.m_Type);
+				a_Writer.AddIntArray("Colors", Explosion.m_Colours.data(), Explosion.m_Colours.size());
+				if (!Explosion.m_FadeColours.empty())
+				{
+					a_Writer.AddIntArray("FadeColors", Explosion.m_FadeColours.data(), Explosion.m_FadeColours.size());
+				}
+				a_Writer.EndCompound();
 			}
-			a_Writer.EndCompound();
 			a_Writer.EndList();
 			a_Writer.EndCompound();
 			break;
@@ -65,11 +78,17 @@ void cFireworkItem::ParseFromNBT(cFireworkItem & a_FireworkItem, const cParsedNB
 	{
 		return;
 	}
+	if (a_NBT.GetType(a_TagIdx) != TAG_Compound)
+	{
+		return;
+	}
+	a_FireworkItem.EmptyData();
 
 	switch (a_Type)
 	{
 		case E_ITEM_FIREWORK_STAR:
 		{
+			a_FireworkItem.m_HasExplosion = true;
 			for (int explosiontag = a_NBT.GetFirstChild(a_TagIdx); explosiontag >= 0; explosiontag = a_NBT.GetNextSibling(explosiontag))
 			{
 				eTagType TagType = a_NBT.GetType(explosiontag);
@@ -113,7 +132,7 @@ void cFireworkItem::ParseFromNBT(cFireworkItem & a_FireworkItem, const cParsedNB
 					}
 					else if (ExplosionName == "FadeColors")
 					{
-						size_t DataLength = a_NBT.GetDataLength(explosiontag) / 4;
+						size_t DataLength = a_NBT.GetDataLength(explosiontag);
 						// round to the next highest multiple of four
 						DataLength -= DataLength % 4;
 						if (DataLength == 0)
@@ -140,15 +159,30 @@ void cFireworkItem::ParseFromNBT(cFireworkItem & a_FireworkItem, const cParsedNB
 				{
 					if (a_NBT.GetName(fireworkstag) == "Flight")
 					{
-						a_FireworkItem.m_FlightTimeInTicks = a_NBT.GetByte(fireworkstag) * 20;
+						a_FireworkItem.m_FlightTimeInTicks = std::max(0, static_cast<int>(static_cast<Int8>(a_NBT.GetByte(fireworkstag)))) * 20;
 					}
 				}
 				else if ((TagType == TAG_List) && (a_NBT.GetName(fireworkstag) == "Explosions"))
 				{
-					int ExplosionsChild = a_NBT.GetFirstChild(fireworkstag);
-					if ((a_NBT.GetType(ExplosionsChild) == TAG_Compound) && (a_NBT.GetName(ExplosionsChild).empty()))
+					bool FirstExplosion = true;
+					for (int ExplosionTag = a_NBT.GetFirstChild(fireworkstag); ExplosionTag >= 0; ExplosionTag = a_NBT.GetNextSibling(ExplosionTag))
 					{
-						ParseFromNBT(a_FireworkItem, a_NBT, ExplosionsChild, E_ITEM_FIREWORK_STAR);
+						if (a_NBT.GetType(ExplosionTag) != TAG_Compound)
+						{
+							continue;
+						}
+						cFireworkItem Explosion;
+						ParseFromNBT(Explosion, a_NBT, ExplosionTag, E_ITEM_FIREWORK_STAR);
+						if (FirstExplosion)
+						{
+							static_cast<cFireworkExplosion &>(a_FireworkItem) = Explosion;
+							a_FireworkItem.m_HasExplosion = true;
+							FirstExplosion = false;
+						}
+						else
+						{
+							a_FireworkItem.m_AdditionalExplosions.push_back(Explosion);
+						}
 					}
 				}
 			}

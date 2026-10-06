@@ -2,6 +2,7 @@
 
 #include "Player.h"
 #include "ArrowEntity.h"
+#include "GhastFireballEntity.h"
 #include "../Chunk.h"
 #include "../Blocks/BlockButton.h"
 
@@ -101,6 +102,16 @@ void cArrowEntity::OnHitSolidBlock(Vector3d a_HitPos, eBlockFace a_HitFace)
 void cArrowEntity::OnHitEntity(cEntity & a_EntityHit, Vector3d a_HitPos)
 {
 	Super::OnHitEntity(a_EntityHit, a_HitPos);
+	if (a_EntityHit.IsProjectile() && (static_cast<cProjectileEntity &>(a_EntityHit).GetProjectileKind() == pkGhastFireball))
+	{
+		m_World->DoWithEntityByID(GetCreatorUniqueID(), [this, &a_EntityHit](cEntity & a_Creator)
+			{
+				static_cast<cGhastFireballEntity &>(a_EntityHit).Deflect(a_Creator, GetSpeed());
+				return true;
+			});
+		Destroy();
+		return;
+	}
 
 	int Damage = static_cast<int>(GetSpeed().Length() / 20 * m_DamageCoeff + 0.5);
 	if (m_IsCritical)
