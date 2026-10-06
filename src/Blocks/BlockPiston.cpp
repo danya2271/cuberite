@@ -7,12 +7,32 @@
 #include "../Entities/Player.h"
 #include "../BlockInServerPluginInterface.h"
 #include "ChunkInterface.h"
+#include "../Simulator/IncrementalRedstoneSimulator/ForEachSourceCallback.h"
+#include "../Simulator/IncrementalRedstoneSimulator/RedstoneHandler.h"
 
 
 
 
 
 #define PISTON_MAX_PUSH_DISTANCE 12
+
+
+
+
+
+static bool IsPistonPowered(cWorld & a_World, Vector3i a_Position, BLOCKTYPE a_Block, NIBBLETYPE a_Meta)
+{
+	bool Powered = false;
+	a_World.DoWithChunkAt(a_Position, [&](cChunk & a_Chunk)
+		{
+			const auto Relative = cChunkDef::AbsoluteToRelative(a_Position);
+			ForEachSourceCallback Callback(a_Chunk, Relative, a_Block);
+			RedstoneHandler::ForValidSourcePositions(a_Chunk, Relative, a_Block, a_Meta, Callback);
+			Powered = Callback.Power != 0;
+			return true;
+		});
+	return Powered;
+}
 
 
 
@@ -43,6 +63,12 @@ Vector3i cBlockPistonHandler::MetadataToOffset(NIBBLETYPE a_PistonMeta)
 
 void cBlockPistonHandler::ExtendPiston(Vector3i a_BlockPos, cWorld & a_World)
 {
+	BLOCKTYPE ExpectedBlock;
+	NIBBLETYPE ExpectedMeta;
+	if (!a_World.GetBlockTypeMeta(a_BlockPos, ExpectedBlock, ExpectedMeta))
+	{
+		return;
+	}
 	{
 		// Broadcast block action first. Will do nothing if piston cannot in fact push
 
@@ -60,7 +86,7 @@ void cBlockPistonHandler::ExtendPiston(Vector3i a_BlockPos, cWorld & a_World)
 	// However, we don't confuse animation with the underlying state of the world, so emulate by delaying 1 tick
 	// (Probably why vanilla has so many dupe glitches with sand and pistons lolol)
 
-	a_World.ScheduleTask(1_tick, [a_BlockPos](cWorld & World)
+	a_World.ScheduleTask(1_tick, [a_BlockPos, ExpectedBlock, ExpectedMeta](cWorld & World)
 		{
 			BLOCKTYPE pistonBlock;
 			NIBBLETYPE pistonMeta;
@@ -68,6 +94,7 @@ void cBlockPistonHandler::ExtendPiston(Vector3i a_BlockPos, cWorld & a_World)
 
 			if (
 				!World.GetBlockTypeMeta(a_BlockPos, pistonBlock, pistonMeta) ||
+				(pistonBlock != ExpectedBlock) || ((pistonMeta & 0x07) != (ExpectedMeta & 0x07)) ||
 				((pistonBlock != E_BLOCK_PISTON) && !IsSticky(pistonBlock))
 			)
 			{
@@ -76,7 +103,7 @@ void cBlockPistonHandler::ExtendPiston(Vector3i a_BlockPos, cWorld & a_World)
 				return;
 			}
 
-			if (IsExtended(pistonMeta))
+			if (IsExtended(pistonMeta) || !IsPistonPowered(World, a_BlockPos, pistonBlock, pistonMeta))
 			{
 				// Already extended, bail out
 				return;
@@ -84,7 +111,7 @@ void cBlockPistonHandler::ExtendPiston(Vector3i a_BlockPos, cWorld & a_World)
 
 			Vector3i pushDir = MetadataToOffset(pistonMeta);
 			Vector3iSet blocksPushed;
-			if (!CanPushBlock(a_BlockPos + pushDir, World, true, blocksPushed, pushDir))
+			if (!CanPushBlock(a_BlockPos + pushDir, World, true, blocksPushed, pushDir, a_BlockPos))
 			{
 				// Can't push anything, bail out
 				return;
@@ -108,6 +135,12 @@ void cBlockPistonHandler::ExtendPiston(Vector3i a_BlockPos, cWorld & a_World)
 
 void cBlockPistonHandler::RetractPiston(Vector3i a_BlockPos, cWorld & a_World)
 {
+	BLOCKTYPE ExpectedBlock;
+	NIBBLETYPE ExpectedMeta;
+	if (!a_World.GetBlockTypeMeta(a_BlockPos, ExpectedBlock, ExpectedMeta))
+	{
+		return;
+	}
 	{
 		BLOCKTYPE pistonBlock;
 		NIBBLETYPE pistonMeta;
@@ -119,13 +152,14 @@ void cBlockPistonHandler::RetractPiston(Vector3i a_BlockPos, cWorld & a_World)
 		}
 	}
 
-	a_World.ScheduleTask(1_tick, [a_BlockPos](cWorld & World)
+	a_World.ScheduleTask(1_tick, [a_BlockPos, ExpectedBlock, ExpectedMeta](cWorld & World)
 		{
 			BLOCKTYPE pistonBlock;
 			NIBBLETYPE pistonMeta;
 
 			if (
 				!World.GetBlockTypeMeta(a_BlockPos, pistonBlock, pistonMeta) ||
+				(pistonBlock != ExpectedBlock) || ((pistonMeta & 0x07) != (ExpectedMeta & 0x07)) ||
 				((pistonBlock != E_BLOCK_PISTON) && !IsSticky(pistonBlock))
 			)
 			{
@@ -134,7 +168,7 @@ void cBlockPistonHandler::RetractPiston(Vector3i a_BlockPos, cWorld & a_World)
 				return;
 			}
 
-			if (!IsExtended(pistonMeta))
+			if (!IsExtended(pistonMeta) || IsPistonPowered(World, a_BlockPos, pistonBlock, pistonMeta))
 			{
 				// Already retracted, bail out
 				return;
@@ -144,9 +178,10 @@ void cBlockPistonHandler::RetractPiston(Vector3i a_BlockPos, cWorld & a_World)
 
 			// Check the extension:
 			Vector3i extensionPos = a_BlockPos + pushDir;
-			if (World.GetBlock(extensionPos) != E_BLOCK_PISTON_EXTENSION)
+			if ((World.GetBlock(extensionPos) != E_BLOCK_PISTON_EXTENSION) || ((World.GetBlockMeta(extensionPos) & 0x07) != (pistonMeta & 0x07)))
 			{
 				LOGD("%s: Piston without an extension - still extending, or just in an invalid state?", __FUNCTION__);
+				World.SetBlock(a_BlockPos, pistonBlock, pistonMeta & 0x07);
 				return;
 			}
 
@@ -169,7 +204,7 @@ void cBlockPistonHandler::RetractPiston(Vector3i a_BlockPos, cWorld & a_World)
 			pushDir *= -1;
 
 			Vector3iSet pushedBlocks;
-			if (!CanPushBlock(AdjustedPosition, World, false, pushedBlocks, pushDir))
+			if (!CanPushBlock(AdjustedPosition, World, false, pushedBlocks, pushDir, a_BlockPos))
 			{
 				// Not pushable, bail out
 				return;
@@ -226,9 +261,13 @@ void cBlockPistonHandler::PushBlocks(
 
 bool cBlockPistonHandler::CanPushBlock(
 	const Vector3i & a_BlockPos, cWorld & a_World, bool a_RequirePushable,
-	Vector3iSet & a_BlocksPushed, const Vector3i & a_PushDir
+	Vector3iSet & a_BlocksPushed, const Vector3i & a_PushDir, const Vector3i & a_PistonPosition
 )
 {
+	if (a_BlockPos == a_PistonPosition)
+	{
+		return !a_RequirePushable;
+	}
 	if (!cChunkDef::IsValidHeight(a_BlockPos))
 	{
 		// Can't push a void block.
@@ -269,6 +308,10 @@ bool cBlockPistonHandler::CanPushBlock(
 		return !a_RequirePushable;
 	}
 
+	if (a_BlocksPushed.find(a_BlockPos) != a_BlocksPushed.end())
+	{
+		return true;
+	}
 	if (a_BlocksPushed.size() >= PISTON_MAX_PUSH_DISTANCE)
 	{
 		// Do not allow to push too much blocks
@@ -285,7 +328,7 @@ bool cBlockPistonHandler::CanPushBlock(
 		// Try to push the other directions
 		for (const auto & testDir : pushingDirs)
 		{
-			if (!CanPushBlock(a_BlockPos + testDir, a_World, false, a_BlocksPushed, a_PushDir))
+			if (!CanPushBlock(a_BlockPos + testDir, a_World, false, a_BlocksPushed, a_PushDir, a_PistonPosition))
 			{
 				// When it's not possible for a direction, then fail
 				return false;
@@ -294,7 +337,7 @@ bool cBlockPistonHandler::CanPushBlock(
 	}
 
 	// Try to push the block in front of this block
-	return CanPushBlock(a_BlockPos + a_PushDir, a_World, true, a_BlocksPushed, a_PushDir);
+	return CanPushBlock(a_BlockPos + a_PushDir, a_World, true, a_BlocksPushed, a_PushDir, a_PistonPosition);
 }
 
 

@@ -116,7 +116,7 @@ private:
 	/** Tries to push a block and increases the pushed blocks variable. Returns true if the block is pushable */
 	static bool CanPushBlock(
 		const Vector3i & a_BlockPos, cWorld & a_World, bool a_RequirePushable,
-		Vector3iSet & a_BlocksPushed, const Vector3i & a_PushDir
+		Vector3iSet & a_BlocksPushed, const Vector3i & a_PushDir, const Vector3i & a_PistonPosition
 	);
 
 	virtual ColourID GetMapBaseColourID(NIBBLETYPE a_Meta) const override

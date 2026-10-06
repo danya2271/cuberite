@@ -3,6 +3,7 @@
 #include "BlockHandler.h"
 #include "BlockSlab.h"
 #include "BlockStairs.h"
+#include "BlockPiston.h"
 #include "../BlockInfo.h"
 #include "../Chunk.h"
 #include "Defines.h"
@@ -140,6 +141,11 @@ private:
 		NIBBLETYPE SupportBlockMeta;
 		a_Chunk.UnboundedRelGetBlock(SupportRelPos, SupportBlockType, SupportBlockMeta);
 		eBlockFace Face = BlockMetaDataToBlockFace(a_Meta);
+		if ((SupportBlockType == E_BLOCK_PISTON) || (SupportBlockType == E_BLOCK_STICKY_PISTON))
+		{
+			return !cBlockPistonHandler::IsExtended(SupportBlockMeta) ||
+				(Face != cBlockPistonHandler::MetaDataToDirection(SupportBlockMeta));
+		}
 
 		// upside down slabs
 		if (cBlockSlabHandler::IsAnySlabType(SupportBlockType))
