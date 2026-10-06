@@ -21,6 +21,7 @@
 #include "Blocks/WorldInterface.h"
 #include "Blocks/BroadcastInterface.h"
 #include "EffectID.h"
+#include "Physics/ExplosionBudget.h"
 
 
 
@@ -744,6 +745,8 @@ public:
 
 	// tolua_end
 
+	bool TryBeginTNTExplosion() { return m_TNTExplosionBudget.TryConsume(); }
+
 	/** Saves all chunks immediately. Dangerous interface, may deadlock, use QueueSaveAllChunks() instead */
 	void SaveAllChunks(void);
 
@@ -999,6 +1002,8 @@ private:
 
 	std::chrono::milliseconds m_LastChunkCheck;  // The last WorldAge in which unloading and possibly saving was triggered.
 	std::chrono::milliseconds m_LastSave;  // The last WorldAge in which save-all was triggerred.
+	std::chrono::seconds m_SaveInterval{300};
+	cExplosionBudget m_TNTExplosionBudget;
 	std::map<cMonster::eFamily, cTickTimeLong> m_LastSpawnMonster;  // The last WorldAge (in ticks) in which a monster was spawned (for each megatype of monster)  // MG TODO : find a way to optimize without creating unmaintenability (if mob IDs are becoming unrowed)
 
 	NIBBLETYPE m_SkyDarkness;

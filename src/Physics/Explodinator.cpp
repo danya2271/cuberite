@@ -209,10 +209,15 @@ namespace Explodinator
 
 		a_Chunk.GetWorld()->ForEachEntityInBox({ a_Position, Radius * 2.f }, [&a_Chunk, a_Position, a_Power, Radius, SquareRadius](cEntity & Entity)
 		{
+			const auto Direction = Entity.GetPosition() - a_Position;
+			const auto Distance = Direction.Length();
+			if (!std::isfinite(Distance) || (Distance > Radius))
+			{
+				return false;
+			}
 			// Percentage of rays unobstructed.
 			const auto Exposure = CalculateEntityExposure(a_Chunk, Entity, a_Position, SquareRadius);
-			const auto Direction = Entity.GetPosition() - a_Position;
-			const auto Impact = (1 - (static_cast<float>(Direction.Length()) / Radius)) * Exposure;
+			const auto Impact = (1 - (static_cast<float>(Distance) / Radius)) * Exposure;
 
 			// Don't apply damage to other TNT entities and falling blocks, they should be invincible:
 			if (!Entity.IsTNT() && !Entity.IsFallingBlock())
@@ -220,16 +225,20 @@ namespace Explodinator
 				const auto Damage = (Impact * Impact + Impact) * 7 * a_Power + 1;
 				Entity.TakeDamage(dtExplosion, nullptr, FloorC(Damage), 0);
 			}
+			if (Distance == 0)
+			{
+				return false;
+			}
 
 			// Impact reduced by armour, expensive call so only apply to Pawns:
 			if (Entity.IsPawn())
 			{
 				const auto ReducedImpact = Impact - Impact * Entity.GetEnchantmentBlastKnockbackReduction();
-				Entity.AddSpeed(Direction.NormalizeCopy() * KnockbackFactor * ReducedImpact);
+				Entity.AddSpeed(Direction * (KnockbackFactor * ReducedImpact / Distance));
 			}
 			else
 			{
-				Entity.AddSpeed(Direction.NormalizeCopy() * KnockbackFactor * Impact);
+				Entity.AddSpeed(Direction * (KnockbackFactor * Impact / Distance));
 			}
 
 			// Continue iteration:
@@ -431,6 +440,10 @@ namespace Explodinator
 
 	void Kaboom(cWorld & a_World, const Vector3f a_Position, const int a_Power, const bool a_Fiery, const cEntity * const a_ExplodingEntity)
 	{
+		if (a_Power <= 0)
+		{
+			return;
+		}
 		a_World.DoWithChunkAt(a_Position.Floor(), [a_Position, a_Power, a_Fiery, a_ExplodingEntity](cChunk & a_Chunk)
 		{
 			LagTheClient(a_Chunk, a_Position, a_Power);

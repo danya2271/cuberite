@@ -33,6 +33,15 @@ void cTNTEntity::SpawnOn(cClientHandle & a_ClientHandle)
 
 void cTNTEntity::Explode(void)
 {
+	if (!IsTicking())
+	{
+		return;
+	}
+	if (!m_World->TryBeginTNTExplosion())
+	{
+		m_FuseTicks = 0;
+		return;
+	}
 	FLOGD("BOOM at {0}", GetPosition());
 
 	// Destroy first so the Explodinator doesn't find us (when iterating through entities):
@@ -68,7 +77,6 @@ void cTNTEntity::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		Explode();
 	}
 }
-
 
 
 

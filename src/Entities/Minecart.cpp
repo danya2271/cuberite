@@ -1588,7 +1588,7 @@ void cMinecartWithTNT::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		{
 			--m_TNTFuseTicksLeft;
 		}
-		else
+		else if (m_World->TryBeginTNTExplosion())
 		{
 			Destroy();
 			m_World->DoExplosionAt(4.0, GetPosX(), GetPosY() + GetHeight() / 2, GetPosZ(), true, esTNTMinecart, this);

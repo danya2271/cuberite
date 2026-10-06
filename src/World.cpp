@@ -250,6 +250,11 @@ cWorld::cWorld(
 		IniFile.SetValueI("General", "UnusedChunkCap", UnusedDirtyChunksCap);
 	}
 	m_UnusedDirtyChunksCap = static_cast<size_t>(UnusedDirtyChunksCap);
+	m_SaveInterval = std::chrono::seconds(Clamp(IniFile.GetValueSetI("General", "SaveIntervalSeconds", 300), 10, 3600));
+	m_TNTExplosionBudget = cExplosionBudget(
+		static_cast<unsigned>(Clamp(IniFile.GetValueSetI("Physics", "MaxTNTExplosionsPerTick", 4), 1, 64)),
+		std::chrono::milliseconds(Clamp(IniFile.GetValueSetI("Physics", "TNTExplosionBudgetMs", 10), 1, 50))
+	);
 
 	m_BroadcastDeathMessages = IniFile.GetValueSetB("Broadcasting", "BroadcastDeathMessages", true);
 	m_BroadcastAchievementMessages = IniFile.GetValueSetB("Broadcasting", "BroadcastAchievementMessages", true);
@@ -1046,6 +1051,7 @@ void cWorld::Stop(cDeadlockDetect & a_DeadlockDetect)
 
 void cWorld::Tick(std::chrono::milliseconds a_Dt, std::chrono::milliseconds a_LastTickDurationMSec)
 {
+	m_TNTExplosionBudget.Reset();
 	// Notify the plugins:
 	cPluginManager::Get()->CallHookWorldTick(*this, a_Dt, a_LastTickDurationMSec);
 
@@ -1101,15 +1107,13 @@ void cWorld::Tick(std::chrono::milliseconds a_Dt, std::chrono::milliseconds a_La
 		// Unload every 10 seconds
 		UnloadUnusedChunks();
 
-		if (m_WorldAge - m_LastSave > std::chrono::minutes(5))
+		if ((m_WorldAge - m_LastSave > m_SaveInterval) || (GetNumUnusedDirtyChunks() > m_UnusedDirtyChunksCap))
 		{
-			// Save every 5 minutes
 			SaveAllChunks();
-		}
-		else if (GetNumUnusedDirtyChunks() > m_UnusedDirtyChunksCap)
-		{
-			// Save if we have too many dirty unused chunks
-			SaveAllChunks();
+			for (auto Player : m_Players)
+			{
+				Player->SaveToDisk();
+			}
 		}
 	}
 }
