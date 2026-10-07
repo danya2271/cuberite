@@ -109,6 +109,26 @@ void cAggressiveMonster::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		// The base class tick destroyed us
 		return;
 	}
+	if (IsPlayerTamed())
+	{
+		if (IsFollowingPlayerOwner())
+		{
+			bool OwnerFound = GetWorld()->DoWithPlayerByUUID(GetPlayerOwnerUUID(), [&](cPlayer & a_Player)
+			{
+				MoveToPosition(a_Player.GetPosition());
+				return true;
+			});
+			if (!OwnerFound)
+			{
+				StopMovingToPosition();
+			}
+		}
+		else
+		{
+			StopMovingToPosition();
+		}
+		return;
+	}
 
 	// Set or clear m_Target depending on rules for this Monster:
 	if (m_EMState == CHASING)

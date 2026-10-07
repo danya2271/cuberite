@@ -22,6 +22,7 @@
 
 #include "PathFinder.h"
 #include "../Entities/LeashKnot.h"
+#include "../UI/TamedMobWindow.h"
 
 
 
@@ -118,11 +119,18 @@ cMonster::cMonster(const AString & a_ConfigName, eMonsterType a_MobType, const A
 	, m_IsLeashActionJustDone(false)
 	, m_CanBeLeashed(GetMobFamily() == eFamily::mfPassive)
 	, m_LovePartner(nullptr)
+	, m_PlayerOwnerWindowOwner(nullptr)
+	, m_PlayerOwnerContents(10, 1)
+	, m_PlayerOwnerUUID()
+	, m_IsPlayerTamed(false)
+	, m_IsFollowingPlayerOwner(false)
+	, m_Feeder()
 	, m_LoveTimer(0)
 	, m_LoveCooldown(0)
 	, m_MatingTimer(0)
 	, m_Target(nullptr)
 {
+	m_PlayerOwnerWindowOwner = std::make_unique<cEntityWindowOwner>(this);
 	if (!a_ConfigName.empty())
 	{
 		GetMonsterConfig(a_ConfigName);
@@ -138,6 +146,11 @@ cMonster::cMonster(const AString & a_ConfigName, eMonsterType a_MobType, const A
 
 void cMonster::OnRemoveFromWorld(cWorld & a_World)
 {
+	if ((m_PlayerOwnerWindowOwner != nullptr) && (m_PlayerOwnerWindowOwner->GetWindow() != nullptr))
+	{
+		m_PlayerOwnerWindowOwner->GetWindow()->OwnerDestroyed();
+	}
+
 	SetTarget(nullptr);  // Tell them we're no longer targeting them.
 
 	if (m_LovePartner != nullptr)
@@ -296,6 +309,12 @@ void cMonster::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 			Destroy();
 		}
 		return;
+	}
+
+	if (m_IsPlayerTamed)
+	{
+		SetTarget(nullptr);
+		m_EMState = IDLE;
 	}
 
 	if (m_TicksSinceLastDamaged < 100)
@@ -591,7 +610,7 @@ bool cMonster::DoTakeDamage(TakeDamageInfo & a_TDI)
 		m_World->BroadcastSoundEffect(m_SoundHurt, GetPosition(), 1.0f, 0.8f);
 	}
 
-	if ((a_TDI.Attacker != nullptr) && a_TDI.Attacker->IsPawn())
+	if (!m_IsPlayerTamed && (a_TDI.Attacker != nullptr) && a_TDI.Attacker->IsPawn())
 	{
 		if (
 			(!a_TDI.Attacker->IsPlayer()) ||
@@ -612,6 +631,16 @@ bool cMonster::DoTakeDamage(TakeDamageInfo & a_TDI)
 void cMonster::KilledBy(TakeDamageInfo & a_TDI)
 {
 	Super::KilledBy(a_TDI);
+	if (m_IsPlayerTamed && (
+		(a_TDI.Attacker == nullptr) ||
+		!a_TDI.Attacker->IsPlayer() ||
+		!static_cast<cPlayer *>(a_TDI.Attacker)->IsGameModeCreative()
+	))
+	{
+		cItems Drops;
+		m_PlayerOwnerContents.CopyToItems(Drops);
+		m_World->SpawnItemPickups(Drops, GetPosX(), GetPosY(), GetPosZ());
+	}
 	if (m_SoundHurt != "")
 	{
 		m_World->BroadcastSoundEffect(m_SoundDeath, GetPosition(), 1.0f, 0.8f);
@@ -708,6 +737,19 @@ void cMonster::OnRightClicked(cPlayer & a_Player)
 {
 	Super::OnRightClicked(a_Player);
 
+	if (m_IsPlayerTamed && (a_Player.GetUUID() == m_PlayerOwnerUUID))
+	{
+		if (a_Player.IsCrouched())
+		{
+			OpenPlayerOwnerInventory(a_Player);
+		}
+		else
+		{
+			TogglePlayerOwnerFollowing();
+		}
+		return;
+	}
+
 	const cItem & EquippedItem = a_Player.GetEquippedItem();
 	if ((EquippedItem.m_ItemType == E_ITEM_NAME_TAG) && !EquippedItem.m_CustomName.empty())
 	{
@@ -736,6 +778,63 @@ void cMonster::OnRightClicked(cPlayer & a_Player)
 			a_Player.GetInventory().RemoveOneEquippedItem();
 		}
 		LeashTo(a_Player);
+	}
+}
+
+
+
+
+
+void cMonster::TameByPlayer(cPlayer & a_Player)
+{
+	m_IsPlayerTamed = true;
+	m_IsFollowingPlayerOwner = true;
+	m_PlayerOwnerUUID = a_Player.GetUUID();
+	m_EMPersonality = PASSIVE;
+	m_CanBeLeashed = false;
+	SetTarget(nullptr);
+	m_EMState = IDLE;
+	m_TicksSinceLastDamaged = 100;
+	SetCustomName("Pet of " + a_Player.GetName());
+	m_World->BroadcastEntityMetadata(*this);
+}
+
+
+
+
+
+void cMonster::TogglePlayerOwnerFollowing(void)
+{
+	m_IsFollowingPlayerOwner = !m_IsFollowingPlayerOwner;
+	if (!m_IsFollowingPlayerOwner)
+	{
+		StopMovingToPosition();
+	}
+	if (m_World != nullptr)
+	{
+		m_World->BroadcastEntityAnimation(*this, EntityAnimation::AnimalFallsInLove);
+	}
+}
+
+
+
+
+
+void cMonster::OpenPlayerOwnerInventory(cPlayer & a_Player)
+{
+	if (!m_IsPlayerTamed || (a_Player.GetUUID() != m_PlayerOwnerUUID))
+	{
+		return;
+	}
+
+	if (m_PlayerOwnerWindowOwner->GetWindow() == nullptr)
+	{
+		m_PlayerOwnerWindowOwner->OpenWindow(new cTamedMobWindow(this));
+	}
+
+	if (a_Player.GetWindow() != m_PlayerOwnerWindowOwner->GetWindow())
+	{
+		a_Player.OpenWindow(*m_PlayerOwnerWindowOwner->GetWindow());
 	}
 }
 

@@ -94,6 +94,38 @@ void cVillager::KilledBy(TakeDamageInfo & a_TDI)
 
 
 
+void cVillager::OnRightClicked(cPlayer & a_Player)
+{
+	Super::OnRightClicked(a_Player);
+
+	const cItem & EquippedItem = a_Player.GetEquippedItem();
+	if (IsBaby() || ((EquippedItem.m_ItemType != E_ITEM_WHEAT) && !EquippedItem.GetHandler().IsFood()))
+	{
+		return;
+	}
+
+	a_Player.GetWorld()->BroadcastEntityAnimation(*this, EntityAnimation::AnimalFallsInLove);
+	a_Player.GetWorld()->BroadcastEntityAnimation(a_Player, EntityAnimation::AnimalFallsInLove);
+
+	auto Clone = std::make_unique<cVillager>(static_cast<eVillagerType>(m_Type));
+	Clone->SetPosition(GetPosition());
+	Clone->SetAge(-1);
+	const auto CloneID = a_Player.GetWorld()->SpawnMobFinalize(std::move(Clone));
+	if (CloneID == cEntity::INVALID_ID)
+	{
+		return;
+	}
+
+	if (!a_Player.IsGameModeCreative())
+	{
+		a_Player.GetInventory().RemoveOneEquippedItem();
+	}
+}
+
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Farmer functions:
 

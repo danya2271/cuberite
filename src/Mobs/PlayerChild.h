@@ -1,17 +1,17 @@
 #pragma once
 
-#include "Monster.h"
+#include "Villager.h"
 #include "../ItemGrid.h"
 #include "../UI/WindowOwner.h"
 
 
 
 class cPlayerChild final:
-	public cMonster,
+	public cVillager,
 	public cItemGrid::cListener,
 	public cEntityWindowOwner
 {
-	using Super = cMonster;
+	using Super = cVillager;
 
 public:
 

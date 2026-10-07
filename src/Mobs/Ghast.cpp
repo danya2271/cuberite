@@ -79,6 +79,10 @@ void cGhast::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		// The base class tick destroyed us
 		return;
 	}
+	if (IsPlayerTamed())
+	{
+		return;
+	}
 
 	if ((m_IsCharging) && (m_TicksUntilShot-- == 0))
 	{

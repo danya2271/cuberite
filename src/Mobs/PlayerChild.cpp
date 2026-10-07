@@ -9,7 +9,7 @@
 
 
 cPlayerChild::cPlayerChild(Vector3d a_Pos, const cUUID & a_Parent1, const cUUID & a_Parent2, const AString & a_ParentNames) :
-	Super("", mtVillager, "entity.villager.hurt", "entity.villager.death", "entity.villager.ambient", 0.6f, 1.0f),
+	Super(cVillager::vtGeneric),
 	cEntityWindowOwner(this),
 	m_Parent1(a_Parent1),
 	m_Parent2(a_Parent2),
@@ -78,7 +78,7 @@ void cPlayerChild::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 
 void cPlayerChild::OnRightClicked(cPlayer & a_Player)
 {
-	Super::OnRightClicked(a_Player);
+	cPassiveMonster::OnRightClicked(a_Player);
 
 	if (GetWindow() == nullptr)
 	{

@@ -2668,9 +2668,10 @@ bool cSlotAreaArmor::CanPlaceArmorInSlot(int a_SlotNum, const cItem & a_Item)
 ////////////////////////////////////////////////////////////////////////////////
 // cSlotAreaItemGrid:
 
-cSlotAreaItemGrid::cSlotAreaItemGrid(cItemGrid & a_ItemGrid, cWindow & a_ParentWindow) :
-	Super(a_ItemGrid.GetNumSlots(), a_ParentWindow),
-	m_ItemGrid(a_ItemGrid)
+cSlotAreaItemGrid::cSlotAreaItemGrid(cItemGrid & a_ItemGrid, cWindow & a_ParentWindow, int a_VisibleSlots) :
+	Super((a_VisibleSlots < 0) ? a_ItemGrid.GetNumSlots() : a_VisibleSlots, a_ParentWindow),
+	m_ItemGrid(a_ItemGrid),
+	m_EmptyItem()
 {
 	m_ItemGrid.AddListener(*this);
 }
@@ -2690,7 +2691,8 @@ cSlotAreaItemGrid::~cSlotAreaItemGrid()
 
 const cItem * cSlotAreaItemGrid::GetSlot(int a_SlotNum, cPlayer & a_Player) const
 {
-	return &m_ItemGrid.GetSlot(a_SlotNum);
+	UNUSED(a_Player);
+	return ((a_SlotNum >= 0) && (a_SlotNum < m_ItemGrid.GetNumSlots())) ? &m_ItemGrid.GetSlot(a_SlotNum) : &m_EmptyItem;
 }
 
 
@@ -2699,7 +2701,48 @@ const cItem * cSlotAreaItemGrid::GetSlot(int a_SlotNum, cPlayer & a_Player) cons
 
 void cSlotAreaItemGrid::SetSlot(int a_SlotNum, cPlayer & a_Player, const cItem & a_Item)
 {
-	m_ItemGrid.SetSlot(a_SlotNum, a_Item);
+	UNUSED(a_Player);
+	if ((a_SlotNum >= 0) && (a_SlotNum < m_ItemGrid.GetNumSlots()))
+	{
+		m_ItemGrid.SetSlot(a_SlotNum, a_Item);
+	}
+}
+
+
+
+
+
+void cSlotAreaItemGrid::DistributeStack(cItem & a_ItemStack, cPlayer & a_Player, bool a_ShouldApply, bool a_KeepEmptySlots, bool a_BackFill)
+{
+	UNUSED(a_Player);
+	for (int i = 0; i < m_ItemGrid.GetNumSlots(); i++)
+	{
+		const int SlotNum = a_BackFill ? (m_ItemGrid.GetNumSlots() - 1 - i) : i;
+		const cItem & Slot = m_ItemGrid.GetSlot(SlotNum);
+		if (!Slot.IsEqual(a_ItemStack) && (!Slot.IsEmpty() || a_KeepEmptySlots))
+		{
+			continue;
+		}
+
+		char NumFit = Slot.GetMaxStackSize() - Slot.m_ItemCount;
+		if (NumFit <= 0)
+		{
+			continue;
+		}
+		NumFit = std::min(NumFit, a_ItemStack.m_ItemCount);
+
+		if (a_ShouldApply)
+		{
+			cItem NewSlot(a_ItemStack);
+			NewSlot.m_ItemCount = Slot.m_ItemCount + NumFit;
+			m_ItemGrid.SetSlot(SlotNum, NewSlot);
+		}
+		a_ItemStack.m_ItemCount -= NumFit;
+		if (a_ItemStack.IsEmpty())
+		{
+			return;
+		}
+	}
 }
 
 

@@ -202,15 +202,17 @@ class cSlotAreaItemGrid:
 
 public:
 
-	cSlotAreaItemGrid(cItemGrid & a_ItemGrid, cWindow & a_ParentWindow);
+	cSlotAreaItemGrid(cItemGrid & a_ItemGrid, cWindow & a_ParentWindow, int a_VisibleSlots = -1);
 
 	virtual ~cSlotAreaItemGrid() override;
 
 	virtual const cItem * GetSlot(int a_SlotNum, cPlayer & a_Player) const override;
 	virtual void          SetSlot(int a_SlotNum, cPlayer & a_Player, const cItem & a_Item) override;
+	virtual void          DistributeStack(cItem & a_ItemStack, cPlayer & a_Player, bool a_ShouldApply, bool a_KeepEmptySlots, bool a_BackFill) override;
 
 protected:
 	cItemGrid & m_ItemGrid;
+	cItem m_EmptyItem;
 
 	// cItemGrid::cListener overrides:
 	virtual void OnSlotChanged(cItemGrid * a_ItemGrid, int a_SlotNum) override;

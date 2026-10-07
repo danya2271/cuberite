@@ -1885,7 +1885,10 @@ void cClientHandle::HandleUseEntity(UInt32 a_TargetEntityID, bool a_IsLeftClick)
 					{
 						const auto FoodInfo = IsWheat ? cItemHandler::FoodInfo(2, 0.6) : HeldItem.GetHandler().GetFoodInfo(&HeldItem);
 						cPlayer & Target = static_cast<cPlayer &>(a_Entity);
-						Target.Feed(FoodInfo.FoodLevel, FoodInfo.Saturation);
+						if (!Target.Feed(FoodInfo.FoodLevel, FoodInfo.Saturation))
+						{
+							return false;
+						}
 						Target.StartPlayerBreeding(m_Player->GetUUID());
 						World->BroadcastEntityAnimation(Target, EntityAnimation::AnimalFallsInLove);
 
@@ -1897,6 +1900,64 @@ void cClientHandle::HandleUseEntity(UInt32 a_TargetEntityID, bool a_IsLeftClick)
 						if (m_Player->IsPlayerBreedingWith(Target.GetUUID()) && Target.IsPlayerBreedingWith(m_Player->GetUUID()))
 						{
 							SpawnPlayerChild(*m_Player, Target);
+						}
+						else
+						{
+							cPlayer * OtherTarget = nullptr;
+							World->ForEachPlayer([&](cPlayer & a_Player) -> bool
+							{
+								if ((&a_Player == &Target) || (&a_Player == m_Player))
+								{
+									return false;
+								}
+								if (!a_Player.IsPlayerBreedingWith(m_Player->GetUUID()))
+								{
+									return false;
+								}
+								if ((a_Player.GetPosition() - Target.GetPosition()).SqrLength() > 64)
+								{
+									return false;
+								}
+
+								OtherTarget = &a_Player;
+								return true;
+							});
+
+							if (OtherTarget != nullptr)
+							{
+								SpawnPlayerChild(Target, *OtherTarget);
+							}
+						}
+						return false;
+					}
+				}
+
+				if (a_Entity.IsMob())
+				{
+					cMonster & Monster = static_cast<cMonster &>(a_Entity);
+					const cItem & HeldItem = m_Player->GetEquippedItem();
+					const bool IsTamingItem = (HeldItem.m_ItemType == E_ITEM_WHEAT) || HeldItem.GetHandler().IsFood();
+
+					if (Monster.IsPlayerTamed() && (Monster.GetPlayerOwnerUUID() == m_Player->GetUUID()))
+					{
+						if (m_Player->IsCrouched())
+						{
+							Monster.OpenPlayerOwnerInventory(*m_Player);
+						}
+						else
+						{
+							Monster.TogglePlayerOwnerFollowing();
+						}
+						return false;
+					}
+
+					if ((Monster.GetMobFamily() == cMonster::eFamily::mfHostile) && !Monster.IsPlayerTamed() && IsTamingItem)
+					{
+						Monster.TameByPlayer(*m_Player);
+						World->BroadcastEntityAnimation(Monster, EntityAnimation::AnimalFallsInLove);
+						if (!m_Player->IsGameModeCreative())
+						{
+							m_Player->GetInventory().RemoveOneEquippedItem();
 						}
 						return false;
 					}

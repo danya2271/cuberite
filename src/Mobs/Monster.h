@@ -2,6 +2,8 @@
 #pragma once
 
 #include "../Entities/Pawn.h"
+#include "../ItemGrid.h"
+#include "../UI/WindowOwner.h"
 #include "../UUID.h"
 #include "MonsterTypes.h"
 #include "PathFinder.h"
@@ -154,6 +156,30 @@ public:
 	// Overridables to handle ageable mobs
 	virtual bool IsTame    (void) const { return false; }
 	virtual bool IsSitting (void) const { return false; }
+
+	/** Returns whether this hostile mob was tamed by a player using food. */
+	bool IsPlayerTamed(void) const { return m_IsPlayerTamed; }
+
+	/** Returns whether this mob currently follows its player owner. */
+	bool IsFollowingPlayerOwner(void) const { return m_IsFollowingPlayerOwner; }
+
+	/** Returns the UUID of the player who tamed this mob. */
+	const cUUID & GetPlayerOwnerUUID(void) const { return m_PlayerOwnerUUID; }
+
+	/** Returns the 10-slot inventory of a player-tamed mob. */
+	cItemGrid & GetPlayerOwnerContents(void) { return m_PlayerOwnerContents; }
+
+	/** Returns the window owner used by the tamed mob inventory. */
+	cEntityWindowOwner & GetPlayerOwnerWindowOwner(void) { return *m_PlayerOwnerWindowOwner; }
+
+	/** Tames this hostile mob for the specified player. */
+	void TameByPlayer(cPlayer & a_Player);
+
+	/** Toggles following for a player-tamed mob. */
+	void TogglePlayerOwnerFollowing(void);
+
+	/** Opens the 10-slot inventory of a player-tamed mob. */
+	void OpenPlayerOwnerInventory(cPlayer & a_Player);
 
 	// tolua_begin
 	bool IsBaby (void) const { return m_Age < 0; }
@@ -370,6 +396,13 @@ protected:
 
 	/** The monster's breeding partner. */
 	cMonster * m_LovePartner;
+
+	/** Generic player taming state shared by hostile mobs. */
+	std::unique_ptr<cEntityWindowOwner> m_PlayerOwnerWindowOwner;
+	cItemGrid m_PlayerOwnerContents;
+	cUUID m_PlayerOwnerUUID;
+	bool m_IsPlayerTamed;
+	bool m_IsFollowingPlayerOwner;
 
 	/** Remembers the player is was last fed by for statistics tracking */
 	cUUID m_Feeder;

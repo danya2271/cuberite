@@ -37,6 +37,7 @@ public:
 	virtual bool DoTakeDamage(TakeDamageInfo & a_TDI) override;
 	virtual void Tick        (std::chrono::milliseconds a_Dt, cChunk & a_Chunk) override;
 	virtual void KilledBy    (TakeDamageInfo & a_TDI) override;
+	virtual void OnRightClicked(cPlayer & a_Player) override;
 
 	// cVillager functions
 	/** Returns the villager hidden inventory (8 slots). */
@@ -103,7 +104,6 @@ private:
 	cItemGrid m_Inventory;
 
 } ;
-
 
 
 

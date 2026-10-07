@@ -31,6 +31,10 @@ void cCreeper::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		// The base class tick destroyed us
 		return;
 	}
+	if (IsPlayerTamed())
+	{
+		return;
+	}
 
 	if (((GetTarget() == nullptr) || !TargetIsInRange()) && !m_BurnedWithFlintAndSteel)
 	{
