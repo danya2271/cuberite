@@ -227,7 +227,7 @@ public:  // tolua_export
 	void SendSpawnEntity                (const cEntity & a_Entity);
 	void SendSpawnMob                   (const cMonster & a_Mob);
 	UInt32 SendMorphSpawn               (int a_MobType, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch);  // tolua_export
-	void SendMorphPosition              (UInt32 a_EntityID, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch);  // tolua_export
+	void SendMorphPosition              (UInt32 a_EntityID, int a_MobType, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch, double a_LastPosX, double a_LastPosY, double a_LastPosZ);  // tolua_export
 	void SendMorphDestroy               (UInt32 a_EntityID);  // tolua_export
 	void SendMorphPlayerSpawn           (const cPlayer & a_Player);
 	void SendStatistics                 (const StatisticsManager & a_Manager);

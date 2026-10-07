@@ -3173,9 +3173,9 @@ UInt32 cClientHandle::SendMorphSpawn(int a_MobType, double a_PosX, double a_PosY
 
 
 
-void cClientHandle::SendMorphPosition(UInt32 a_EntityID, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch)
+void cClientHandle::SendMorphPosition(UInt32 a_EntityID, int a_MobType, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch, double a_LastPosX, double a_LastPosY, double a_LastPosZ)
 {
-	auto Mob = cMonster::NewMonsterFromType(mtZombie);
+	auto Mob = cMonster::NewMonsterFromType(static_cast<eMonsterType>(a_MobType));
 	if (Mob == nullptr)
 	{
 		return;
@@ -3183,9 +3183,12 @@ void cClientHandle::SendMorphPosition(UInt32 a_EntityID, double a_PosX, double a
 
 	Mob->SetUniqueIDForPacket(a_EntityID);
 	Mob->SetPosition(a_PosX, a_PosY, a_PosZ);
+	Mob->SetLastSentPositionForPacket({a_LastPosX, a_LastPosY, a_LastPosZ});
 	Mob->SetYaw(a_Yaw);
 	Mob->SetPitch(a_Pitch);
+	Mob->SetHeadYaw(a_Yaw);
 	m_Protocol->SendEntityPosition(*Mob);
+	m_Protocol->SendEntityHeadLook(*Mob);
 }
 
 
