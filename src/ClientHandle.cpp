@@ -22,6 +22,7 @@
 #include "UI/EnchantingWindow.h"
 #include "Item.h"
 #include "Mobs/Monster.h"
+#include "Mobs/PlayerChild.h"
 #include "ChatColor.h"
 #include "Items/ItemHandler.h"
 #include "Blocks/BlockHandler.h"
@@ -51,6 +52,34 @@
 
 /** Maximum number of chunks to stream per tick. */
 #define MAX_CHUNKS_STREAMED_PER_TICK 4
+
+
+
+static bool SpawnPlayerChild(cPlayer & a_Parent1, cPlayer & a_Parent2)
+{
+	if ((a_Parent1.GetWorld() != a_Parent2.GetWorld()) || ((a_Parent1.GetPosition() - a_Parent2.GetPosition()).SqrLength() > 64))
+	{
+		return false;
+	}
+
+	const Vector3d ChildPos = (a_Parent1.GetPosition() + a_Parent2.GetPosition()) * 0.5;
+	const auto ChildID = a_Parent1.GetWorld()->SpawnMobFinalize(std::make_unique<cPlayerChild>(
+		ChildPos,
+		a_Parent1.GetUUID(),
+		a_Parent2.GetUUID(),
+		a_Parent1.GetName() + " & " + a_Parent2.GetName()
+	));
+	if (ChildID == cEntity::INVALID_ID)
+	{
+		return false;
+	}
+
+	a_Parent1.GetWorld()->BroadcastEntityAnimation(a_Parent1, EntityAnimation::AnimalFallsInLove);
+	a_Parent1.GetWorld()->BroadcastEntityAnimation(a_Parent2, EntityAnimation::AnimalFallsInLove);
+	a_Parent1.ResetPlayerBreeding();
+	a_Parent2.ResetPlayerBreeding();
+	return true;
+}
 
 
 
@@ -1847,6 +1876,32 @@ void cClientHandle::HandleUseEntity(UInt32 a_TargetEntityID, bool a_IsLeftClick)
 				{
 					return false;
 				}
+				if (a_Entity.IsPlayer() && (a_Entity.GetUniqueID() != m_Player->GetUniqueID()))
+				{
+					const cItem & HeldItem = m_Player->GetEquippedItem();
+					const bool IsWheat = (HeldItem.m_ItemType == E_ITEM_WHEAT);
+					const bool IsFood = HeldItem.GetHandler().IsFood();
+					if (IsWheat || IsFood)
+					{
+						const auto FoodInfo = IsWheat ? cItemHandler::FoodInfo(2, 0.6) : HeldItem.GetHandler().GetFoodInfo(&HeldItem);
+						cPlayer & Target = static_cast<cPlayer &>(a_Entity);
+						Target.Feed(FoodInfo.FoodLevel, FoodInfo.Saturation);
+						Target.StartPlayerBreeding(m_Player->GetUUID());
+						World->BroadcastEntityAnimation(Target, EntityAnimation::AnimalFallsInLove);
+
+						if (!m_Player->IsGameModeCreative())
+						{
+							m_Player->GetInventory().RemoveOneEquippedItem();
+						}
+
+						if (m_Player->IsPlayerBreedingWith(Target.GetUUID()) && Target.IsPlayerBreedingWith(m_Player->GetUUID()))
+						{
+							SpawnPlayerChild(*m_Player, Target);
+						}
+						return false;
+					}
+				}
+
 				a_Entity.OnRightClicked(*m_Player);
 				return false;
 			}

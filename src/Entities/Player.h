@@ -371,6 +371,15 @@ public:
 	/** Adds to FoodLevel and FoodSaturationLevel, returns true if any food has been consumed, false if player "full" */
 	bool Feed(int a_Food, double a_Saturation);
 
+	/** Puts the player into the temporary state used for player breeding. */
+	void StartPlayerBreeding(const cUUID & a_Partner);
+
+	/** Returns true if the player is ready to breed with the specified player. */
+	bool IsPlayerBreedingWith(const cUUID & a_Partner) const;
+
+	/** Clears the temporary player breeding state. */
+	void ResetPlayerBreeding(void);
+
 	/** Adds the specified exhaustion to m_FoodExhaustion. Expects only positive values. */
 	void AddFoodExhaustion(double a_Exhaustion);
 
@@ -755,6 +764,10 @@ private:
 	/** Displayed skin part bit mask */
 	int m_SkinParts;
 	eMonsterType m_MorphType;
+
+	/** Temporary state used when two players are fed for breeding. */
+	int m_PlayerBreedingTimer;
+	cUUID m_PlayerBreedingPartner;
 
 	/** List on known recipes as Ids */
 	std::set<UInt32> m_KnownRecipes;

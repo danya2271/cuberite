@@ -136,7 +136,9 @@ cPlayer::cPlayer(const std::shared_ptr<cClientHandle> & a_Client) :
 	m_Spectating(nullptr),
 	m_TicksUntilNextSave(PLAYER_INVENTORY_SAVE_INTERVAL),
 	m_SkinParts(0),
-	m_MorphType(mtInvalidType)
+	m_MorphType(mtInvalidType),
+	m_PlayerBreedingTimer(0),
+	m_PlayerBreedingPartner()
 {
 	ASSERT(GetName().length() <= 16);  // Otherwise this player could crash many clients...
 
@@ -433,6 +435,35 @@ bool cPlayer::Feed(int a_Food, double a_Saturation)
 	SetFoodSaturationLevel(m_FoodSaturationLevel + a_Saturation);
 	SetFoodLevel(m_FoodLevel + a_Food);
 	return true;
+}
+
+
+
+
+
+void cPlayer::StartPlayerBreeding(const cUUID & a_Partner)
+{
+	m_PlayerBreedingTimer = TPS * 30;
+	m_PlayerBreedingPartner = a_Partner;
+}
+
+
+
+
+
+bool cPlayer::IsPlayerBreedingWith(const cUUID & a_Partner) const
+{
+	return (m_PlayerBreedingTimer > 0) && (m_PlayerBreedingPartner == a_Partner);
+}
+
+
+
+
+
+void cPlayer::ResetPlayerBreeding(void)
+{
+	m_PlayerBreedingTimer = 0;
+	m_PlayerBreedingPartner = cUUID();
 }
 
 
@@ -3307,6 +3338,11 @@ void cPlayer::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 
 	if (m_Health > 0)  // make sure player is alive
 	{
+		if (m_PlayerBreedingTimer > 0)
+		{
+			--m_PlayerBreedingTimer;
+		}
+
 		if ((m_EatingFinishTick >= 0_tick) && (m_EatingFinishTick <= m_World->GetWorldAge()))
 		{
 			FinishEating();

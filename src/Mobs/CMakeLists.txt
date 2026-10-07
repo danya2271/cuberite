@@ -25,6 +25,7 @@ target_sources(
 	Path.cpp
 	PathFinder.cpp
 	Pig.cpp
+	PlayerChild.cpp
 	Rabbit.cpp
 	Sheep.cpp
 	Silverfish.cpp
@@ -68,6 +69,7 @@ target_sources(
 	Path.h
 	PathFinder.h
 	Pig.h
+	PlayerChild.h
 	Rabbit.h
 	Sheep.h
 	Silverfish.h
