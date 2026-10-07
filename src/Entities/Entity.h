@@ -261,6 +261,9 @@ public:
 	bool IsTicking(void) const;
 
 	// tolua_end
+
+	void SetUniqueIDForPacket(UInt32 a_UniqueID) { m_UniqueID = a_UniqueID; }
+
 	/** Destroys the entity, schedules it for memory freeing and broadcasts the DestroyEntity packet */
 	void Destroy();
 	// tolua_begin

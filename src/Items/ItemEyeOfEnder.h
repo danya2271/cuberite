@@ -16,7 +16,7 @@ class cItemEyeOfEnderHandler final:
 public:
 
 	constexpr cItemEyeOfEnderHandler(int a_ItemType):
-		Super(a_ItemType, cProjectileEntity::pkSnowball, 30)
+		Super(a_ItemType, cProjectileEntity::pkEnderPearl, 30)
 	{
 	}
 

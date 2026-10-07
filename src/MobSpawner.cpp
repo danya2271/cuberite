@@ -196,6 +196,11 @@ bool cMobSpawner::CanSpawnHere(cChunk * a_Chunk, Vector3i a_RelPos, eMonsterType
 
 		case mtGuardian:
 		{
+			if (a_Biome != biDeepOcean)
+			{
+				return false;
+			}
+
 			return
 			(
 				IsBlockWater(TargetBlock) &&
@@ -366,14 +371,18 @@ std::set<eMonsterType> cMobSpawner::GetAllowedMobTypes(EMCSBiome a_Biome)
 			return ListOfSpawnables;
 		}
 
-		// Add Squid in ocean and river biomes
+		// Add Squid in ocean and river biomes, Guardians only in deep oceans.
 		case biOcean:
 		case biFrozenOcean:
 		case biFrozenRiver:
 		case biRiver:
 		case biDeepOcean:
 		{
-			ListOfSpawnables.insert(mtGuardian);
+			ListOfSpawnables.insert(mtSquid);
+			if (a_Biome == biDeepOcean)
+			{
+				ListOfSpawnables.insert(mtGuardian);
+			}
 			break;
 		}
 
@@ -461,8 +470,6 @@ std::set<eMonsterType> cMobSpawner::GetAllowedMobTypes(EMCSBiome a_Biome)
 	ListOfSpawnables.insert(mtZombie);
 	ListOfSpawnables.insert(mtSkeleton);
 	ListOfSpawnables.insert(mtCreeper);
-	ListOfSpawnables.insert(mtSquid);
-
 	// Nether
 	ListOfSpawnables.insert(mtBlaze);
 	ListOfSpawnables.insert(mtGhast);

@@ -1311,6 +1311,7 @@ void cWorld::TickQueuedEntityAdditions(void)
 	for (auto & Item: EntitiesToAdd)
 	{
 		const auto Entity = Item.first.get();
+		const auto OldWorld = Item.second;
 
 		if (Entity->IsPlayer())
 		{
@@ -1324,7 +1325,12 @@ void cWorld::TickQueuedEntityAdditions(void)
 
 		m_ChunkMap.AddEntity(std::move(Item.first));
 
-		if (const auto OldWorld = Item.second; OldWorld != nullptr)
+		if (Entity->IsPlayer() && (OldWorld == nullptr))
+		{
+			cRoot::Get()->GetServer()->PlayerCreated();
+		}
+
+		if (OldWorld != nullptr)
 		{
 			cRoot::Get()->GetPluginManager()->CallHookEntityChangedWorld(*Entity, *OldWorld);
 		}

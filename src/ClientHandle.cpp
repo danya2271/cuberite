@@ -444,9 +444,6 @@ void cClientHandle::FinishAuthenticate()
 		World = cRoot::Get()->GetDefaultWorld();
 	}
 
-	// Atomically increment player count (in server thread):
-	cRoot::Get()->GetServer()->PlayerCreated();
-
 	if (!cRoot::Get()->GetPluginManager()->CallHookPlayerJoined(*m_Player))
 	{
 		cRoot::Get()->BroadcastChatJoin(fmt::format(FMT_STRING("{} has joined the game"), m_Username));
@@ -486,11 +483,16 @@ void cClientHandle::FinishAuthenticate()
 	// This should fix #889, "BadCast exception, cannot convert bit to fm" error in client
 	m_PingStartTime = std::chrono::steady_clock::now() + std::chrono::seconds(3);  // Send the first KeepAlive packet in 3 seconds
 
+	SetState(csDownloadingWorld);
+	if (!m_Player->Initialize(std::move(Player), *World))
+	{
+		m_Player = nullptr;
+		Kick("You were denied access to the world.");
+		return;
+	}
+
 	// Remove the client handle from the server, it will be ticked from its cPlayer object from now on:
 	cRoot::Get()->GetServer()->ClientMovedToWorld(this);
-
-	SetState(csDownloadingWorld);
-	m_Player->Initialize(std::move(Player), *World);
 
 	// LOGD("Client %s @ %s (%p) has been fully authenticated", m_Username.c_str(), m_IPString.c_str(), static_cast<void *>(this));
 }
@@ -896,6 +898,12 @@ void cClientHandle::HandlePlayerAbilities(bool a_IsFlying, float FlyingSpeed, fl
 
 void cClientHandle::HandlePluginMessage(const AString & a_Channel, const ContiguousByteBufferView a_Message)
 {
+	if (a_Channel.size() > 32767)
+	{
+		Kick("Invalid plugin channel name");
+		return;
+	}
+
 	if (a_Channel == "REGISTER")
 	{
 		if (HasPluginChannel(a_Channel))
@@ -3112,6 +3120,83 @@ void cClientHandle::SendSpawnEntity(const cEntity & a_Entity)
 void cClientHandle::SendSpawnMob(const cMonster & a_Mob)
 {
 	m_Protocol->SendSpawnMob(a_Mob);
+}
+
+
+
+
+
+UInt32 cClientHandle::SendMorphSpawn(int a_MobType, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch)
+{
+	auto Mob = cMonster::NewMonsterFromType(static_cast<eMonsterType>(a_MobType));
+	if (Mob == nullptr)
+	{
+		return cEntity::INVALID_ID;
+	}
+
+	Mob->SetPosition(a_PosX, a_PosY, a_PosZ);
+	Mob->SetYaw(a_Yaw);
+	Mob->SetPitch(a_Pitch);
+	Mob->SetHeadYaw(a_Yaw);
+	Mob->SetSpeed(0, 0, 0);
+	m_Protocol->SendSpawnMob(*Mob);
+	return Mob->GetUniqueID();
+}
+
+
+
+
+
+void cClientHandle::SendMorphPosition(UInt32 a_EntityID, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch)
+{
+	auto Mob = cMonster::NewMonsterFromType(mtZombie);
+	if (Mob == nullptr)
+	{
+		return;
+	}
+
+	Mob->SetUniqueIDForPacket(a_EntityID);
+	Mob->SetPosition(a_PosX, a_PosY, a_PosZ);
+	Mob->SetYaw(a_Yaw);
+	Mob->SetPitch(a_Pitch);
+	m_Protocol->SendEntityPosition(*Mob);
+}
+
+
+
+
+
+void cClientHandle::SendMorphDestroy(UInt32 a_EntityID)
+{
+	auto Mob = cMonster::NewMonsterFromType(mtZombie);
+	if (Mob == nullptr)
+	{
+		return;
+	}
+
+	Mob->SetUniqueIDForPacket(a_EntityID);
+	m_Protocol->SendDestroyEntity(*Mob);
+}
+
+
+
+
+
+void cClientHandle::SendMorphPlayerSpawn(const cPlayer & a_Player)
+{
+	auto Mob = cMonster::NewMonsterFromType(a_Player.GetMorphType());
+	if (Mob == nullptr)
+	{
+		return;
+	}
+
+	Mob->SetUniqueIDForPacket(a_Player.GetUniqueID());
+	Mob->SetPosition(a_Player.GetPosition());
+	Mob->SetYaw(a_Player.GetYaw());
+	Mob->SetPitch(a_Player.GetPitch());
+	Mob->SetHeadYaw(a_Player.GetYaw());
+	Mob->SetSpeed(a_Player.GetSpeed());
+	m_Protocol->SendSpawnMob(*Mob);
 }
 
 

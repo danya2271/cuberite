@@ -10,6 +10,7 @@
 #include "../StatisticsManager.h"
 
 #include "../UUID.h"
+#include "../Mobs/MonsterTypes.h"
 
 
 
@@ -421,6 +422,10 @@ public:
 	void Respawn(void);  // tolua_export
 
 	void SetVisible( bool a_bVisible);  // tolua_export
+	void SetMorphType(int a_MobType);  // tolua_export
+	void ClearMorphType(void);  // tolua_export
+	bool IsMorphed(void) const { return m_MorphType != mtInvalidType; }
+	eMonsterType GetMorphType(void) const { return m_MorphType; }
 
 	/** Saves all player data, such as inventory, to JSON. */
 	void SaveToDisk(void);
@@ -749,6 +754,7 @@ private:
 
 	/** Displayed skin part bit mask */
 	int m_SkinParts;
+	eMonsterType m_MorphType;
 
 	/** List on known recipes as Ids */
 	std::set<UInt32> m_KnownRecipes;

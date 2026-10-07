@@ -646,6 +646,11 @@ void cProtocol_1_13::HandlePacketNameItem(cByteBuffer & a_ByteBuffer)
 void cProtocol_1_13::HandlePacketPluginMessage(cByteBuffer & a_ByteBuffer)
 {
 	HANDLE_READ(a_ByteBuffer, ReadVarUTF8String, AString, NamespacedChannel);
+	if (NamespacedChannel.size() > 32767)
+	{
+		m_Client->Kick("Invalid plugin channel name");
+		return;
+	}
 
 	const auto & [Namespace, Channel] = NamespaceSerializer::SplitNamespacedID(NamespacedChannel);
 

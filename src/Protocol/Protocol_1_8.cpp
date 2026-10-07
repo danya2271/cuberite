@@ -1239,6 +1239,11 @@ void cProtocol_1_8_0::SendPlayerSpawn(const cPlayer & a_Player)
 void cProtocol_1_8_0::SendPluginMessage(const AString & a_Channel, const ContiguousByteBufferView a_Message)
 {
 	ASSERT(m_State == 3);  // In game mode?
+	if (a_Channel.size() > 32767)
+	{
+		LOGWARNING("Refusing to send an oversized plugin channel name (%zu bytes)", a_Channel.size());
+		return;
+	}
 
 	cPacketizer Pkt(*this, pktPluginMessage);
 	Pkt.WriteString(a_Channel);
@@ -2592,6 +2597,11 @@ void cProtocol_1_8_0::HandlePacketPluginMessage(cByteBuffer & a_ByteBuffer)
 	// https://wiki.vg/index.php?title=Plugin_channels&oldid=14089#MC.7CAdvCmd
 
 	HANDLE_READ(a_ByteBuffer, ReadVarUTF8String, AString, Channel);
+	if (Channel.size() > 32767)
+	{
+		m_Client->Kick("Invalid plugin channel name");
+		return;
+	}
 
 	const std::string_view ChannelView = Channel;
 

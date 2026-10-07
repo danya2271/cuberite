@@ -135,7 +135,8 @@ cPlayer::cPlayer(const std::shared_ptr<cClientHandle> & a_Client) :
 	m_Team(nullptr),
 	m_Spectating(nullptr),
 	m_TicksUntilNextSave(PLAYER_INVENTORY_SAVE_INTERVAL),
-	m_SkinParts(0)
+	m_SkinParts(0),
+	m_MorphType(mtInvalidType)
 {
 	ASSERT(GetName().length() <= 16);  // Otherwise this player could crash many clients...
 
@@ -1565,6 +1566,51 @@ void cPlayer::SetVisible(bool a_bVisible)
 	}
 
 	m_World->BroadcastEntityMetadata(*this);
+}
+
+
+
+
+
+void cPlayer::SetMorphType(int a_MobType)
+{
+	const auto MobType = static_cast<eMonsterType>(a_MobType);
+	if (MobType == mtInvalidType)
+	{
+		ClearMorphType();
+		return;
+	}
+
+	if (cMonster::NewMonsterFromType(MobType) == nullptr)
+	{
+		return;
+	}
+
+	m_MorphType = MobType;
+	if (m_World != nullptr)
+	{
+		m_World->BroadcastDestroyEntity(*this, m_ClientHandle.get());
+		m_World->BroadcastSpawnEntity(*this, m_ClientHandle.get());
+	}
+}
+
+
+
+
+
+void cPlayer::ClearMorphType(void)
+{
+	if (m_MorphType == mtInvalidType)
+	{
+		return;
+	}
+
+	m_MorphType = mtInvalidType;
+	if (m_World != nullptr)
+	{
+		m_World->BroadcastDestroyEntity(*this, m_ClientHandle.get());
+		m_World->BroadcastSpawnEntity(*this, m_ClientHandle.get());
+	}
 }
 
 
@@ -3152,7 +3198,14 @@ void cPlayer::SpawnOn(cClientHandle & a_Client)
 		return;
 	}
 
-	a_Client.SendPlayerSpawn(*this);
+	if (IsMorphed())
+	{
+		a_Client.SendMorphPlayerSpawn(*this);
+	}
+	else
+	{
+		a_Client.SendPlayerSpawn(*this);
+	}
 	a_Client.SendEntityHeadLook(*this);
 	a_Client.SendEntityEquipment(*this, 0, m_Inventory.GetEquippedItem());
 	a_Client.SendEntityEquipment(*this, 1, m_Inventory.GetEquippedBoots());

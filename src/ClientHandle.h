@@ -226,6 +226,10 @@ public:  // tolua_export
 	void SendSoundParticleEffect        (const EffectID a_EffectID, Vector3i a_Source, int a_Data);
 	void SendSpawnEntity                (const cEntity & a_Entity);
 	void SendSpawnMob                   (const cMonster & a_Mob);
+	UInt32 SendMorphSpawn               (int a_MobType, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch);  // tolua_export
+	void SendMorphPosition              (UInt32 a_EntityID, double a_PosX, double a_PosY, double a_PosZ, double a_Yaw, double a_Pitch);  // tolua_export
+	void SendMorphDestroy               (UInt32 a_EntityID);  // tolua_export
+	void SendMorphPlayerSpawn           (const cPlayer & a_Player);
 	void SendStatistics                 (const StatisticsManager & a_Manager);
 	void SendTabCompletionResults       (const AStringVector & a_Results);
 	void SendThunderbolt                (Vector3i a_BlockPos);  // tolua_export
