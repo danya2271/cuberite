@@ -263,6 +263,7 @@ public:
 	// tolua_end
 
 	void SetUniqueIDForPacket(UInt32 a_UniqueID) { m_UniqueID = a_UniqueID; }
+	void SetLastSentPositionForPacket(Vector3d a_Position) { m_LastSentPosition = a_Position; }
 
 	/** Destroys the entity, schedules it for memory freeing and broadcasts the DestroyEntity packet */
 	void Destroy();

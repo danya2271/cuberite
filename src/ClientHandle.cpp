@@ -2618,6 +2618,11 @@ void cClientHandle::SendEntityEffect(const cEntity & a_Entity, int a_EffectID, i
 
 void cClientHandle::SendEntityEquipment(const cEntity & a_Entity, short a_SlotNum, const cItem & a_Item)
 {
+	if (a_Entity.IsPlayer() && static_cast<const cPlayer &>(a_Entity).IsMorphed())
+	{
+		return;
+	}
+
 	m_Protocol->SendEntityEquipment(a_Entity, a_SlotNum, a_Item);
 }
 
@@ -2649,6 +2654,26 @@ void cClientHandle::SendEntityLook(const cEntity & a_Entity)
 
 void cClientHandle::SendEntityMetadata(const cEntity & a_Entity)
 {
+	if (a_Entity.IsPlayer())
+	{
+		const auto & Player = static_cast<const cPlayer &>(a_Entity);
+		if (Player.IsMorphed())
+		{
+			auto Mob = cMonster::NewMonsterFromType(Player.GetMorphType());
+			if (Mob != nullptr)
+			{
+				Mob->SetUniqueIDForPacket(Player.GetUniqueID());
+				Mob->SetPosition(Player.GetPosition());
+				Mob->SetLastSentPositionForPacket(Player.GetLastSentPosition());
+				Mob->SetYaw(Player.GetYaw());
+				Mob->SetPitch(Player.GetPitch());
+				Mob->SetHeadYaw(Player.GetYaw());
+				m_Protocol->SendEntityMetadata(*Mob);
+			}
+			return;
+		}
+	}
+
 	m_Protocol->SendEntityMetadata(a_Entity);
 }
 
@@ -3135,6 +3160,7 @@ UInt32 cClientHandle::SendMorphSpawn(int a_MobType, double a_PosX, double a_PosY
 	}
 
 	Mob->SetPosition(a_PosX, a_PosY, a_PosZ);
+	Mob->SetLastSentPositionForPacket({a_PosX, a_PosY, a_PosZ});
 	Mob->SetYaw(a_Yaw);
 	Mob->SetPitch(a_Pitch);
 	Mob->SetHeadYaw(a_Yaw);
@@ -3192,6 +3218,7 @@ void cClientHandle::SendMorphPlayerSpawn(const cPlayer & a_Player)
 
 	Mob->SetUniqueIDForPacket(a_Player.GetUniqueID());
 	Mob->SetPosition(a_Player.GetPosition());
+	Mob->SetLastSentPositionForPacket(a_Player.GetPosition());
 	Mob->SetYaw(a_Player.GetYaw());
 	Mob->SetPitch(a_Player.GetPitch());
 	Mob->SetHeadYaw(a_Player.GetYaw());
