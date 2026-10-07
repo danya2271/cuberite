@@ -131,11 +131,11 @@ public:
 	/** Don't tick a_Client anymore, it will be ticked from its cPlayer instead */
 	void ClientMovedToWorld(const cClientHandle * a_Client);
 
-	/** Notifies the server that a player was created; the server uses this to adjust the number of players */
-	void PlayerCreated();
+	/** Notifies the server that a player was created; duplicate notifications are ignored. */
+	void PlayerCreated(UInt32 a_PlayerID);
 
-	/** Notifies the server that a player is being destroyed; the server uses this to adjust the number of players */
-	void PlayerDestroyed();
+	/** Notifies the server that a player is being destroyed; duplicate notifications are ignored. */
+	void PlayerDestroyed(UInt32 a_PlayerID);
 
 	/** Returns base64 encoded favicon data (obtained from favicon.png) */
 	const AString & GetFaviconData(void) const { return m_FaviconData; }
@@ -205,6 +205,10 @@ private:
 
 	/** Number of players currently playing in the server. */
 	std::atomic_size_t m_PlayerCount;
+
+	/** Protects the set used to make player count notifications idempotent. */
+	cCriticalSection m_CSPlayerCount;
+	std::set<UInt32> m_ActivePlayerIDs;
 
 	cCriticalSection m_CSPendingCommands;
 	std::vector<std::pair<AString, cCommandOutputCallback *>> m_PendingCommands;
@@ -307,6 +311,5 @@ private:
 
 
 };  // tolua_export
-
 
 

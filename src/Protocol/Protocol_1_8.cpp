@@ -57,6 +57,7 @@ Implements the 1.8 protocol classes:
 
 const int MAX_ENC_LEN = 512;  // Maximum size of the encrypted message; should be 128, but who knows...
 static const UInt32 CompressionThreshold = 256;  // After how large a packet should we compress it.
+static const UInt32 MaxPacketSize = 2 MiB;
 
 
 
@@ -3879,6 +3880,11 @@ void cProtocol_1_8_0::AddReceivedData(cByteBuffer & a_Buffer, const ContiguousBy
 			a_Buffer.ResetRead();
 			break;
 		}
+		if (PacketLen > MaxPacketSize)
+		{
+			m_Client->Kick("Packet is too large");
+			return;
+		}
 		if (!a_Buffer.CanReadBytes(PacketLen))
 		{
 			// The full packet hasn't been received yet
@@ -3899,16 +3905,36 @@ void cProtocol_1_8_0::AddReceivedData(cByteBuffer & a_Buffer, const ContiguousBy
 			}
 
 			NumBytesRead -= static_cast<UInt32>(a_Buffer.GetReadableSpace());  // How many bytes has the UncompressedSize taken up?
-			ASSERT(PacketLen > NumBytesRead);
+			if (PacketLen <= NumBytesRead)
+			{
+				m_Client->Kick("Invalid compression packet");
+				return;
+			}
 			PacketLen -= NumBytesRead;
 
 			if (UncompressedSize > 0)
 			{
+				if (UncompressedSize > MaxPacketSize)
+				{
+					m_Client->Kick("Compressed packet is too large");
+					return;
+				}
+
 				// Decompress the data:
 				m_Extractor.ReadFrom(a_Buffer, PacketLen);
 				a_Buffer.CommitRead();
 
-				const auto UncompressedData = m_Extractor.Extract(UncompressedSize);
+				Compression::Result UncompressedData;
+				try
+				{
+					UncompressedData = m_Extractor.Extract(UncompressedSize);
+				}
+				catch (const std::exception & Oops)
+				{
+					LOGD("Invalid compressed packet from %s: %s", m_Client->GetUsername().c_str(), Oops.what());
+					m_Client->Kick("Invalid compressed packet");
+					return;
+				}
 				const auto Uncompressed = UncompressedData.GetView();
 				cByteBuffer bb(Uncompressed.size());
 
@@ -3916,6 +3942,10 @@ void cProtocol_1_8_0::AddReceivedData(cByteBuffer & a_Buffer, const ContiguousBy
 				VERIFY(bb.Write(Uncompressed.data(), Uncompressed.size()));
 
 				HandlePacket(bb);
+				if (m_Client->IsDestroyed())
+				{
+					return;
+				}
 				continue;
 			}
 		}
@@ -3928,6 +3958,10 @@ void cProtocol_1_8_0::AddReceivedData(cByteBuffer & a_Buffer, const ContiguousBy
 		a_Buffer.CommitRead();
 
 		HandlePacket(bb);
+		if (m_Client->IsDestroyed())
+		{
+			return;
+		}
 	}  // for (ever)
 
 	// Log any leftover bytes into the logfile:

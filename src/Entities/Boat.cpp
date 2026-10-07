@@ -210,8 +210,20 @@ void cBoat::HandleSpeedFromAttachee(float a_Forward, float a_Sideways)
 		return;
 	}
 
-	Vector3d ToAddSpeed = m_Attachee->GetLookVector() * (a_Sideways * 0.4) ;
-	ToAddSpeed.y = 0;
+	if (m_Attachee == nullptr)
+	{
+		return;
+	}
+
+	auto LookVector = m_Attachee->GetLookVector();
+	LookVector.y = 0;
+	if (LookVector.SqrLength() < 0.0001)
+	{
+		return;
+	}
+	LookVector.Normalize();
+	const auto RightVector = Vector3d(LookVector.z, 0, -LookVector.x);
+	const Vector3d ToAddSpeed = LookVector * (a_Forward * 0.4) + RightVector * (a_Sideways * 0.4);
 
 	AddSpeed(ToAddSpeed);
 }
@@ -239,6 +251,13 @@ void cBoat::UpdatePaddles(bool a_RightPaddleUsed, bool a_LeftPaddleUsed)
 
 	m_RightPaddleUsed = a_RightPaddleUsed;
 	m_LeftPaddleUsed = a_LeftPaddleUsed;
+
+	if (m_Attachee != nullptr)
+	{
+		const float Forward = (a_RightPaddleUsed && a_LeftPaddleUsed) ? 1.0f : 0.0f;
+		const float Sideways = static_cast<float>(a_LeftPaddleUsed) - static_cast<float>(a_RightPaddleUsed);
+		HandleSpeedFromAttachee(Forward, Sideways);
+	}
 
 	if (Changed)
 	{

@@ -103,7 +103,7 @@ void cBlockPistonHandler::ExtendPiston(Vector3i a_BlockPos, cWorld & a_World)
 				return;
 			}
 
-			if (IsExtended(pistonMeta) || !IsPistonPowered(World, a_BlockPos, pistonBlock, pistonMeta))
+			if (IsExtended(pistonMeta))
 			{
 				// Already extended, bail out
 				return;

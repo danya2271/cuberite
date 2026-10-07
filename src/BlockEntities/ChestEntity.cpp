@@ -182,6 +182,7 @@ void cChestEntity::OnRemoveFromWorld()
 
 void cChestEntity::SendTo(cClientHandle & a_Client)
 {
+	a_Client.SendBlockAction(m_Pos, 1, 0, m_BlockType);
 	a_Client.SendUpdateBlockEntity(*this);
 }
 

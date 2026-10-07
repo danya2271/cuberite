@@ -162,6 +162,8 @@ cPlayer::~cPlayer(void)
 
 	SaveToDisk();
 
+	cRoot::Get()->GetServer()->PlayerDestroyed(GetUniqueID());
+
 	delete m_InventoryWindow;
 
 	LOGD("Player %p deleted", static_cast<void *>(this));
@@ -3155,9 +3157,6 @@ void cPlayer::OnRemoveFromWorld(cWorld & a_World)
 
 		// Remove ourself from everyone's lists:
 		cRoot::Get()->BroadcastPlayerListsRemovePlayer(*this);
-
-		// Atomically decrement player count (in world thread):
-		cRoot::Get()->GetServer()->PlayerDestroyed();
 
 		// We're just disconnecting. The remaining code deals with going through portals, so bail:
 		return;

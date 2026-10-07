@@ -98,6 +98,10 @@ void cProtocol_1_14::SendBlockChange(Vector3i a_BlockPos, BLOCKTYPE a_BlockType,
 
 void cProtocol_1_14::SendEditSign(Vector3i a_BlockPos)
 {
+	ASSERT(m_State == 3);  // In game mode?
+
+	cPacketizer Pkt(*this, pktEditSign);
+	Pkt.WriteXZYPosition64(a_BlockPos);
 }
 
 
@@ -311,6 +315,26 @@ void cProtocol_1_14::SendUpdateBlockEntity(cBlockEntity & a_BlockEntity)
 
 void cProtocol_1_14::SendUpdateSign(Vector3i a_BlockPos, const AString & a_Line1, const AString & a_Line2, const AString & a_Line3, const AString & a_Line4)
 {
+	ASSERT(m_State == 3);  // In game mode?
+
+	cPacketizer Pkt(*this, pktUpdateBlockEntity);
+	Pkt.WriteXZYPosition64(a_BlockPos);
+	Pkt.WriteBEUInt8(9);
+
+	cFastNBTWriter Writer;
+	Writer.AddInt("x", a_BlockPos.x);
+	Writer.AddInt("y", a_BlockPos.y);
+	Writer.AddInt("z", a_BlockPos.z);
+	Writer.AddString("id", "Sign");
+	const AString Lines[] = {a_Line1, a_Line2, a_Line3, a_Line4};
+	for (size_t i = 0; i < ARRAYCOUNT(Lines); i++)
+	{
+		Json::Value Text;
+		Text["text"] = Lines[i];
+		Writer.AddString(fmt::format(FMT_STRING("Text{}"), i + 1), JsonUtils::WriteFastString(Text));
+	}
+	Writer.Finish();
+	Pkt.WriteBuf(Writer.GetResult());
 }
 
 
@@ -493,7 +517,8 @@ UInt32 cProtocol_1_14::GetPacketID(ePacketType a_PacketType) const
 		case cProtocol::pktUnlockRecipe:         return 0x36;
 		case cProtocol::pktUpdateHealth:         return 0x48;
 		case cProtocol::pktUpdateScore:          return 0x4C;
-		case cProtocol::pktUpdateSign:           return 0x2F;
+		case cProtocol::pktEditSign:             return 0x2F;
+		case cProtocol::pktUpdateSign:           return GetPacketID(cProtocol::pktUpdateBlockEntity);
 		case cProtocol::pktWeather:              return 0x1E;
 		case cProtocol::pktWindowItems:          return 0x14;
 		case cProtocol::pktWindowConfirmation:   return 0x12;
@@ -959,6 +984,16 @@ bool cProtocol_1_14::HandlePacket(cByteBuffer & a_ByteBuffer, UInt32 a_PacketTyp
 		case 0x14: HandlePacketPlayer(a_ByteBuffer); return true;
 		case 0x15: HandlePacketVehicleMove(a_ByteBuffer); return true;
 		case 0x16: HandlePacketBoatSteer(a_ByteBuffer); return true;
+		case 0x17:
+		{
+			UInt32 SlotNum;
+			if (!a_ByteBuffer.ReadVarInt(SlotNum))
+			{
+				return true;
+			}
+			m_Client->HandlePickItem(SlotNum);
+			return true;
+		}
 		case 0x18: HandleCraftRecipe(a_ByteBuffer); return true;
 		case 0x19: HandlePacketPlayerAbilities(a_ByteBuffer); return true;
 		case 0x1A: HandlePacketBlockDig(a_ByteBuffer); return true;

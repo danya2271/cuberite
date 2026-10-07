@@ -76,6 +76,17 @@ void cProtocol_1_13::SendBlockChanges(int a_ChunkX, int a_ChunkZ, const sSetBloc
 
 
 
+void cProtocol_1_13::SendEditSign(Vector3i a_BlockPos)
+{
+	ASSERT(m_State == 3);  // In game mode?
+
+	cPacketizer Pkt(*this, pktEditSign);
+	Pkt.WriteXZYPosition64(a_BlockPos);
+}
+
+
+
+
 void cProtocol_1_13::SendMapData(const cMap & a_Map, int a_DataStartX, int a_DataStartY)
 {
 	// TODO
@@ -605,7 +616,16 @@ bool cProtocol_1_13::HandlePacket(cByteBuffer & a_ByteBuffer, UInt32 a_PacketTyp
 		case 0x12: HandlePacketPlayerLook(a_ByteBuffer); return true;
 		case 0x13: HandlePacketVehicleMove(a_ByteBuffer); return true;
 		case 0x14: HandlePacketBoatSteer(a_ByteBuffer); return true;
-		case 0x15: break;  // Pick item - not yet implemented
+		case 0x15:
+		{
+			UInt32 SlotNum;
+			if (!a_ByteBuffer.ReadVarInt(SlotNum))
+			{
+				return true;
+			}
+			m_Client->HandlePickItem(SlotNum);
+			return true;
+		}
 		case 0x16: break;  // Craft Recipe Request - not yet implemented
 		case 0x17: HandlePacketPlayerAbilities(a_ByteBuffer); return true;
 		case 0x18: HandlePacketBlockDig(a_ByteBuffer); return true;

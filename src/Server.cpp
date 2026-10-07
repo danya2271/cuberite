@@ -133,18 +133,26 @@ void cServer::ClientMovedToWorld(const cClientHandle * a_Client)
 
 
 
-void cServer::PlayerCreated()
+void cServer::PlayerCreated(UInt32 a_PlayerID)
 {
-	m_PlayerCount++;
+	cCSLock Lock(m_CSPlayerCount);
+	if (m_ActivePlayerIDs.insert(a_PlayerID).second)
+	{
+		m_PlayerCount++;
+	}
 }
 
 
 
 
 
-void cServer::PlayerDestroyed()
+void cServer::PlayerDestroyed(UInt32 a_PlayerID)
 {
-	m_PlayerCount--;
+	cCSLock Lock(m_CSPlayerCount);
+	if (m_ActivePlayerIDs.erase(a_PlayerID) != 0)
+	{
+		m_PlayerCount--;
+	}
 }
 
 

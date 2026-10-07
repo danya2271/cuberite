@@ -804,6 +804,42 @@ void cClientHandle::HandleCreativeInventory(Int16 a_SlotNum, const cItem & a_Hel
 
 
 
+void cClientHandle::HandlePickItem(UInt32 a_SlotNum)
+{
+	if (!m_Player->IsGameModeCreative())
+	{
+		return;
+	}
+
+	if (a_SlotNum >= cInventory::invHotbarCount + cInventory::invInventoryCount)
+	{
+		LOGD("Player \"%s\" sent an invalid Pick Item slot %u.", m_Username.c_str(), a_SlotNum);
+		return;
+	}
+
+	auto & Inventory = m_Player->GetInventory();
+	const auto SelectedSlot = Inventory.GetEquippedSlotNum();
+	if (a_SlotNum < cInventory::invHotbarCount)
+	{
+		HandleSlotSelected(static_cast<Int16>(a_SlotNum));
+		return;
+	}
+
+	const auto InventorySlot = static_cast<int>(a_SlotNum - cInventory::invHotbarCount);
+	const auto PickedItem = Inventory.GetInventorySlot(InventorySlot);
+	if (PickedItem.IsEmpty())
+	{
+		return;
+	}
+
+	const auto EquippedItem = Inventory.GetHotbarSlot(SelectedSlot);
+	Inventory.SetHotbarSlot(SelectedSlot, PickedItem);
+	Inventory.SetInventorySlot(InventorySlot, EquippedItem);
+}
+
+
+
+
 void cClientHandle::HandleCrouch(const bool a_IsCrouching)
 {
 	m_Player->SetCrouch(a_IsCrouching);
@@ -1246,7 +1282,7 @@ void cClientHandle::HandleLeftClick(Vector3i a_BlockPos, eBlockFace a_BlockFace,
 
 void cClientHandle::HandleBlockDigStarted(Vector3i a_BlockPos, eBlockFace a_BlockFace)
 {
-	if (m_Player->IsGameModeAdventure())
+	if (m_Player->IsGameModeAdventure() || (m_Player->GetHealth() <= 0))
 	{
 		// Players in adventure mode can't destroy blocks
 		return;
@@ -1316,6 +1352,12 @@ void cClientHandle::HandleBlockDigStarted(Vector3i a_BlockPos, eBlockFace a_Bloc
 
 void cClientHandle::HandleBlockDigFinished(Vector3i a_BlockPos, eBlockFace a_BlockFace)
 {
+	if (m_Player->IsGameModeAdventure() || (m_Player->GetHealth() <= 0))
+	{
+		FinishDigAnimation();
+		return;
+	}
+
 	if (
 		!m_HasStartedDigging ||           // Hasn't received the DIG_STARTED packet
 		(m_LastDigBlockPos != a_BlockPos)  // DIG_STARTED has had different pos
@@ -1448,7 +1490,7 @@ void cClientHandle::HandleRightClick(Vector3i a_BlockPos, eBlockFace a_BlockFace
 
 	FLOGD("HandleRightClick: {0}, face {1}, Cursor {2}, Hand: {3}, HeldItem: {4}", a_BlockPos, a_BlockFace, a_CursorPos, a_UsedMainHand, ItemToFullString(HeldItem));
 
-	if (!PlgMgr->CallHookPlayerRightClick(*m_Player, a_BlockPos, a_BlockFace, a_CursorPos) && IsWithinReach(a_BlockPos) && !m_Player->IsFrozen())
+	if (!PlgMgr->CallHookPlayerRightClick(*m_Player, a_BlockPos, a_BlockFace, a_CursorPos) && IsWithinReach(a_BlockPos) && !m_Player->IsFrozen() && (m_Player->GetHealth() > 0))
 	{
 		BLOCKTYPE BlockType;
 		NIBBLETYPE BlockMeta;

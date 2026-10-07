@@ -1414,17 +1414,37 @@ void cMonster::LoveTick(void)
 		GetFollowedItems(FollowedItems);
 		if (FollowedItems.Size() > 0)
 		{
-			m_World->DoWithNearestPlayer(GetPosition(), static_cast<float>(m_SightDistance), [&](cPlayer & a_Player) -> bool
+			cPlayer * FollowedPlayer = nullptr;
+			double ClosestDistance = static_cast<double>(m_SightDistance);
+
+			m_World->ForEachPlayer([&](cPlayer & a_Player) -> bool
 			{
-				const cItem & EquippedItem = a_Player.GetEquippedItem();
-				if (FollowedItems.ContainsType(EquippedItem))
+				if (a_Player.IsGameModeSpectator())
 				{
-					Vector3d PlayerPos = a_Player.GetPosition();
-					MoveToPosition(PlayerPos);
+					return false;
 				}
 
-				return true;
+				const cItem & EquippedItem = a_Player.GetEquippedItem();
+				if (!FollowedItems.ContainsType(EquippedItem))
+				{
+					return false;
+				}
+
+				const auto Distance = (a_Player.GetPosition() - GetPosition()).Length();
+				if (Distance >= ClosestDistance)
+				{
+					return false;
+				}
+
+				ClosestDistance = Distance;
+				FollowedPlayer = &a_Player;
+				return false;
 			});
+
+			if (FollowedPlayer != nullptr)
+			{
+				MoveToPosition(FollowedPlayer->GetPosition());
+			}
 		}
 	}
 

@@ -26,7 +26,7 @@ cNetherPortalScanner::cNetherPortalScanner(cEntity & a_MovingEntity, cWorld & a_
 	m_Dir(Direction::X),
 	m_PortalLoc(a_DestPosition.Floor()),
 	m_Position(a_DestPosition),
-	m_MaxY(a_MaxY)
+	m_MaxY(Clamp(a_MaxY, PortalHeight + 1, cChunkDef::Height))
 {
 	int MinX = FloorC((m_Position.x - SearchRadius) / cChunkDef::Width);
 	int MinZ = FloorC((m_Position.z - SearchRadius) / cChunkDef::Width);
@@ -179,6 +179,8 @@ bool cNetherPortalScanner::OnAllChunksAvailable(void)
 	}
 	else
 	{
+		m_PortalLoc.y = Clamp(m_PortalLoc.y, 0, m_MaxY - PortalHeight - 1);
+
 		// Scan the area for a suitable location
 		int minx = FloorC(m_Position.x) - BuildSearchRadius;
 		int minz = FloorC(m_Position.z) - BuildSearchRadius;
@@ -357,4 +359,3 @@ void cNetherPortalScanner::OnDisabled(void)
 
 	delete this;
 }
-

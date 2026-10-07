@@ -1105,7 +1105,7 @@ void cEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		NextSpeed.y += static_cast<float>(fallspeed);
 
 		// A real boat floats
-		if (IsBoat())
+		if (IsBoat() && IsBlockWater(BlockIn))
 		{
 			// Find top water block and sit there
 			int NextBlockY = BlockY;
@@ -1434,9 +1434,40 @@ bool cEntity::DetectPortal()
 		return false;
 	}
 
-	if (const auto Position = m_Position.Floor(); cChunkDef::IsValidHeight(Position))
+	const auto Position = m_Position.Floor();
+	if (cChunkDef::IsValidHeight(Position))
 	{
-		switch (GetWorld()->GetBlock(Position))
+		const auto MinX = FloorC(GetPosX() - m_Width / 2);
+		const auto MaxX = FloorC(GetPosX() + m_Width / 2);
+		const auto MinY = FloorC(GetPosY());
+		const auto MaxY = FloorC(GetPosY() + m_Height);
+		const auto MinZ = FloorC(GetPosZ() - m_Width / 2);
+		const auto MaxZ = FloorC(GetPosZ() + m_Width / 2);
+		Vector3i PortalPosition = Position;
+		bool IsInPortal = false;
+		for (int x = MinX; x <= MaxX && !IsInPortal; x++)
+		{
+			for (int y = MinY; y <= MaxY && !IsInPortal; y++)
+			{
+				for (int z = MinZ; z <= MaxZ; z++)
+				{
+					const Vector3i BlockPosition{x, y, z};
+					if (cChunkDef::IsValidHeight(BlockPosition) && (GetWorld()->GetBlock(BlockPosition) == E_BLOCK_NETHER_PORTAL))
+					{
+						PortalPosition = BlockPosition;
+						IsInPortal = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if (!IsInPortal)
+		{
+			return false;
+		}
+
+		switch (GetWorld()->GetBlock(PortalPosition))
 		{
 			case E_BLOCK_NETHER_PORTAL:
 			{

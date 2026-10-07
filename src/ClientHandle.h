@@ -338,6 +338,7 @@ public:  // tolua_export
 	/** Called when the client clicks the creative inventory window.
 	a_ClickAction specifies whether the click was inside the window or not (caLeftClick or caLeftClickOutside). */
 	void HandleCreativeInventory(Int16 a_SlotNum, const cItem & a_HeldItem, eClickAction a_ClickAction);
+	void HandlePickItem(UInt32 a_SlotNum);
 
 	/** Handles a player sneaking or unsneaking. */
 	void HandleCrouch(bool a_IsCrouching);

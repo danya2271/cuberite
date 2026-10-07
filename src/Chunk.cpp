@@ -983,12 +983,12 @@ cItems cChunk::PickupsFromBlock(Vector3i a_RelPos, const cEntity * a_Digger, con
 	if ((a_Tool == nullptr) || a_Tool->GetHandler().CanHarvestBlock(BlockType))
 	{
 		Pickups = cBlockHandler::For(BlockType).ConvertToPickups(BlockMeta, a_Tool);
+	}
 
-		if (BlockEntity != nullptr)
-		{
-			auto BlockEntityPickups = BlockEntity->ConvertToPickups();
-			Pickups.insert(Pickups.end(), std::make_move_iterator(BlockEntityPickups.begin()), std::make_move_iterator(BlockEntityPickups.end()));
-		}
+	if (BlockEntity != nullptr)
+	{
+		auto BlockEntityPickups = BlockEntity->ConvertToPickups();
+		Pickups.insert(Pickups.end(), std::make_move_iterator(BlockEntityPickups.begin()), std::make_move_iterator(BlockEntityPickups.end()));
 	}
 
 	// TODO: this should be in cWorld::DropBlockAsPickups. When it's here we can't check the return value and cancel spawning:
@@ -1419,6 +1419,7 @@ void cChunk::AddBlockEntity(OwnedBlockEntity a_BlockEntity)
 
 	ASSERT(Result.second);  // No block entity already at this position.
 	BlockEntityPtr->OnAddToWorld(*m_World, *this);
+	m_PendingSendBlockEntities.push_back(BlockEntityPtr);
 }
 
 

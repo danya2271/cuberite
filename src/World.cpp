@@ -347,7 +347,7 @@ cWorld::cWorld(
 		return (std::find(a_WorldNames.begin(), a_WorldNames.end(), a_CheckWorldName) != a_WorldNames.end());
 	};
 
-	if (a_Dimension == dimOverworld)
+	if (m_Dimension == dimOverworld)
 	{
 		AString MyNetherName = GetName() + "_nether";
 		AString MyEndName = GetName() + "_the_end";
@@ -373,7 +373,7 @@ cWorld::cWorld(
 	}
 
 	// If we are linked to one or more worlds that do not exist, unlink them
-	if (a_Dimension == dimOverworld)
+	if (m_Dimension == dimOverworld)
 	{
 		if (!m_LinkedNetherWorldName.empty() && !WorldExists(m_LinkedNetherWorldName))
 		{
@@ -1327,7 +1327,7 @@ void cWorld::TickQueuedEntityAdditions(void)
 
 		if (Entity->IsPlayer() && (OldWorld == nullptr))
 		{
-			cRoot::Get()->GetServer()->PlayerCreated();
+			cRoot::Get()->GetServer()->PlayerCreated(Entity->GetUniqueID());
 		}
 
 		if (OldWorld != nullptr)
