@@ -36,7 +36,12 @@ void cSignEntity::CopyFrom(const cBlockEntity & a_Src)
 
 bool cSignEntity::UsedBy(cPlayer * a_Player)
 {
-	UNUSED(a_Player);
+	if (a_Player == nullptr)
+	{
+		return false;
+	}
+
+	a_Player->GetClientHandle()->SendEditSign(m_Pos);
 	return true;
 }
 
