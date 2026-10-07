@@ -212,12 +212,11 @@ void cIncrementalRedstoneSimulator::WakeUp(cChunk & a_Chunk, Vector3i a_Position
 
 	AddBlock(a_Chunk, a_Position, a_Block);
 
-	// The only thing to do go one block farther than this cross-coord, in the direction of Offset
-	// in order to notify linked-powered positions that there was a change
+	// Wake linked-powered positions around the adjacent block that was reached.
 
 	for (const auto & Offset : cSimulator::GetLinkedOffsets(a_Offset))
 	{
-		auto Relative = a_Position - a_Offset + Offset;
+		auto Relative = a_Position + Offset;
 
 		if (!cChunkDef::IsValidHeight(Relative))
 		{
