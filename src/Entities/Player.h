@@ -424,8 +424,8 @@ public:
 	void SetVisible( bool a_bVisible);  // tolua_export
 	void SetMorphType(int a_MobType);  // tolua_export
 	void ClearMorphType(void);  // tolua_export
-	bool IsMorphed(void) const { return m_MorphType != mtInvalidType; }
-	eMonsterType GetMorphType(void) const { return m_MorphType; }
+	bool IsMorphed(void) const { return m_MorphType != mtInvalidType; }  // tolua_export
+	eMonsterType GetMorphType(void) const { return m_MorphType; }  // tolua_export
 
 	/** Saves all player data, such as inventory, to JSON. */
 	void SaveToDisk(void);

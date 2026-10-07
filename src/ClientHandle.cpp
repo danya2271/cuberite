@@ -2618,9 +2618,13 @@ void cClientHandle::SendEntityEffect(const cEntity & a_Entity, int a_EffectID, i
 
 void cClientHandle::SendEntityEquipment(const cEntity & a_Entity, short a_SlotNum, const cItem & a_Item)
 {
-	if (a_Entity.IsPlayer() && static_cast<const cPlayer &>(a_Entity).IsMorphed())
+	if (a_Entity.IsPlayer())
 	{
-		return;
+		const auto & Player = static_cast<const cPlayer &>(a_Entity);
+		if (Player.IsMorphed() && ((m_Player == nullptr) || (m_Player->GetUniqueID() != Player.GetUniqueID())))
+		{
+			return;
+		}
 	}
 
 	m_Protocol->SendEntityEquipment(a_Entity, a_SlotNum, a_Item);
@@ -2659,6 +2663,12 @@ void cClientHandle::SendEntityMetadata(const cEntity & a_Entity)
 		const auto & Player = static_cast<const cPlayer &>(a_Entity);
 		if (Player.IsMorphed())
 		{
+			if ((m_Player != nullptr) && (m_Player->GetUniqueID() == Player.GetUniqueID()))
+			{
+				m_Protocol->SendEntityMetadata(a_Entity);
+				return;
+			}
+
 			auto Mob = cMonster::NewMonsterFromType(Player.GetMorphType());
 			if (Mob != nullptr)
 			{
@@ -2692,6 +2702,15 @@ void cClientHandle::SendEntityPosition(const cEntity & a_Entity)
 
 void cClientHandle::SendEntityProperties(const cEntity & a_Entity)
 {
+	if (a_Entity.IsPlayer())
+	{
+		const auto & Player = static_cast<const cPlayer &>(a_Entity);
+		if (Player.IsMorphed() && ((m_Player == nullptr) || (m_Player->GetUniqueID() != Player.GetUniqueID())))
+		{
+			return;
+		}
+	}
+
 	m_Protocol->SendEntityProperties(a_Entity);
 }
 
