@@ -1578,6 +1578,7 @@ void cWSSAnvil::LoadEntityFromNBT(cEntityList & a_Entities, const cParsedNBT & a
 		{ "minecraft:boat",                &cWSSAnvil::LoadBoatFromNBT },
 		{ "EnderCrystal",                  &cWSSAnvil::LoadEnderCrystalFromNBT },
 		{ "minecraft:ender_crystal",       &cWSSAnvil::LoadEnderCrystalFromNBT },
+		{ "FallingSand",                   &cWSSAnvil::LoadFallingBlockFromNBT },
 		{ "FallingBlock",                  &cWSSAnvil::LoadFallingBlockFromNBT },
 		{ "minecraft:falling_block",       &cWSSAnvil::LoadFallingBlockFromNBT },
 		{ "Minecart",                      &cWSSAnvil::LoadOldMinecartFromNBT },
