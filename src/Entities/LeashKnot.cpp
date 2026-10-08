@@ -144,7 +144,7 @@ cLeashKnot * cLeashKnot::FindKnotAtPos(cWorldInterface & a_WorldInterface, Vecto
 	cLeashKnot * LeashKnot = nullptr;
 	a_WorldInterface.ForEachEntityInBox(cBoundingBox(a_BlockPos, 0.5, 1), [&](cEntity & a_Entity)
 		{
-			if (a_Entity.IsLeashKnot())
+			if (a_Entity.IsLeashKnot() && !a_Entity.IsA("cStairSeat"))
 			{
 				LeashKnot = static_cast<cLeashKnot *>(&a_Entity);
 				return true;
@@ -155,7 +155,6 @@ cLeashKnot * cLeashKnot::FindKnotAtPos(cWorldInterface & a_WorldInterface, Vecto
 
 	return LeashKnot;
 }
-
 
 
 

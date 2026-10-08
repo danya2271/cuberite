@@ -3,6 +3,7 @@
 
 #include "BlockHandler.h"
 #include "Mixins/Mixins.h"
+#include "../Entities/StairSeat.h"
 
 
 
@@ -40,6 +41,36 @@ public:
 				return false;
 			}
 		}
+	}
+
+
+
+	virtual bool OnUse(
+		cChunkInterface & a_ChunkInterface,
+		cWorldInterface & a_WorldInterface,
+		cPlayer & a_Player,
+		const Vector3i a_BlockPos,
+		eBlockFace a_BlockFace,
+		const Vector3i a_CursorPos
+	) const override
+	{
+		UNUSED(a_ChunkInterface);
+		UNUSED(a_WorldInterface);
+		UNUSED(a_BlockFace);
+		UNUSED(a_CursorPos);
+
+		if (!a_Player.GetEquippedItem().IsEmpty())
+		{
+			return false;
+		}
+		return cStairSeat::Sit(a_Player, a_BlockPos, a_Player.GetWorld()->GetBlockMeta(a_BlockPos));
+	}
+
+
+
+	virtual bool IsUseable(void) const override
+	{
+		return true;
 	}
 
 private:
@@ -114,7 +145,6 @@ private:
 	#endif
 
 } ;
-
 
 
 

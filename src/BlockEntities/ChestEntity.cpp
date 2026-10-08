@@ -55,6 +55,11 @@ cChestEntity * cChestEntity::GetSecondaryChest()
 
 bool cChestEntity::ScanNeighbour(cChunk & a_Chunk, Vector3i a_Position)
 {
+	if (m_Neighbour != nullptr)
+	{
+		return false;
+	}
+
 	const auto Chunk = a_Chunk.GetRelNeighborChunkAdjustCoords(a_Position);
 
 	if ((Chunk == nullptr) || !Chunk->IsValid())
@@ -71,7 +76,13 @@ bool cChestEntity::ScanNeighbour(cChunk & a_Chunk, Vector3i a_Position)
 		return false;
 	}
 
-	m_Neighbour = static_cast<cChestEntity *>(BlockEntity);
+	auto Neighbour = static_cast<cChestEntity *>(BlockEntity);
+	if (Neighbour->m_Neighbour != nullptr)
+	{
+		return false;
+	}
+
+	m_Neighbour = Neighbour;
 	return true;
 }
 

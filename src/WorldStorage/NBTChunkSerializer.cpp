@@ -143,6 +143,11 @@ public:
 
 	virtual void Entity(cEntity * a_Entity) override
 	{
+		if (a_Entity->IsA("cStairSeat"))
+		{
+			return;
+		}
+
 		// Add entity into NBT:
 		if (mIsTagOpen)
 		{

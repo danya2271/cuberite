@@ -23,7 +23,7 @@ private:
 
 	virtual bool CommitPlacement(cPlayer & a_Player, const cItem & a_HeldItem, const Vector3i a_PlacePosition, const eBlockFace a_ClickedBlockFace, const Vector3i a_CursorPosition) const override
 	{
-		// Check that there is at most one single neighbor of the same chest type:
+		// Use one same-type neighbor for double-chest orientation when available.
 		static const Vector3i CrossCoords[] =
 		{
 			{-1, 0,  0},
@@ -42,22 +42,11 @@ private:
 			{
 				continue;
 			}
-			if (NeighborIdx >= 0)
+			if (NeighborIdx < 0)
 			{
-				// Can't place here, there are already two neighbors, this would form a 3-block chest
-				return false;
+				NeighborIdx = static_cast<int>(i);
 			}
-			NeighborIdx = static_cast<int>(i);
 
-			// Check that this neighbor is a single chest:
-			for (size_t j = 0; j < ARRAYCOUNT(CrossCoords); j++)
-			{
-				if (World.GetBlock(NeighborPos + CrossCoords[j]) == m_ItemType)
-				{
-					// Trying to place next to a dblchest
-					return false;
-				}
-			}  // for j
 		}  // for i
 
 		// Get the meta of the placed chest; take existing neighbors into account:

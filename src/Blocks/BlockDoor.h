@@ -186,6 +186,40 @@ private:
 
 
 
+	virtual bool DoesIgnoreBuildCollision(const cWorld & a_World, const cItem & a_HeldItem, const Vector3i a_Position, const NIBBLETYPE a_Meta, const eBlockFace a_ClickedBlockFace, const bool a_ClickedDirectly) const override
+	{
+		UNUSED(a_World);
+		UNUSED(a_Position);
+		UNUSED(a_Meta);
+		UNUSED(a_ClickedBlockFace);
+		return IsDoorItemType(a_HeldItem.m_ItemType) && !a_ClickedDirectly;
+	}
+
+
+
+	static bool IsDoorItemType(const short a_ItemType)
+	{
+		switch (a_ItemType)
+		{
+			case E_ITEM_ACACIA_DOOR:
+			case E_ITEM_BIRCH_DOOR:
+			case E_ITEM_DARK_OAK_DOOR:
+			case E_ITEM_IRON_DOOR:
+			case E_ITEM_JUNGLE_DOOR:
+			case E_ITEM_SPRUCE_DOOR:
+			case E_ITEM_WOODEN_DOOR:
+			{
+				return true;
+			}
+			default:
+			{
+				return false;
+			}
+		}
+	}
+
+
+
 
 
 	virtual bool CanBeAt(const cChunk & a_Chunk, const Vector3i a_Position, const NIBBLETYPE a_Meta) const override
@@ -277,7 +311,4 @@ private:
 		}
 	}
 } ;
-
-
-
 

@@ -6,6 +6,7 @@
 #include "../FastRandom.h"
 #include "../BlockInServerPluginInterface.h"
 #include "../Chunk.h"
+#include "../BlockInfo.h"
 
 // Handlers:
 #include "ItemAnvil.h"
@@ -90,6 +91,8 @@
 #include "ItemVines.h"
 
 #include "../Blocks/BlockHandler.h"
+#include "../Blocks/BlockSlab.h"
+#include "../Blocks/BlockStairs.h"
 #include "SimplePlaceableItemHandler.h"
 
 
@@ -98,6 +101,40 @@
 
 namespace
 {
+	bool IsGlassItem(const cItem & a_Item)
+	{
+		switch (a_Item.m_ItemType)
+		{
+			case E_BLOCK_GLASS:
+			case E_BLOCK_GLASS_PANE:
+			case E_BLOCK_STAINED_GLASS:
+			case E_BLOCK_STAINED_GLASS_PANE:
+			{
+				return true;
+			}
+			default:
+			{
+				return false;
+			}
+		}
+	}
+
+
+
+	bool ShouldPlaceOnTopOfPartialBlock(const BLOCKTYPE a_ClickedBlockType, const cItem & a_HeldItem, const eBlockFace a_ClickedBlockFace)
+	{
+		if (a_ClickedBlockFace == BLOCK_FACE_BOTTOM)
+		{
+			return false;
+		}
+
+		const bool IsPartialBlock = cBlockSlabHandler::IsAnySlabType(a_ClickedBlockType) || cBlockStairsHandler::IsAnyStairType(a_ClickedBlockType);
+		const bool IsSlab = cBlockSlabHandler::IsAnySlabType(static_cast<BLOCKTYPE>(a_HeldItem.m_ItemType));
+		return (IsGlassItem(a_HeldItem) && IsPartialBlock) || (IsSlab && IsBlockFence(a_ClickedBlockType));
+	}
+
+
+
 	constexpr cDefaultItemHandler           Item11DiscHandler                          (E_ITEM_11_DISC);
 	constexpr cDefaultItemHandler           Item13DiscHandler                          (E_ITEM_13_DISC);
 	constexpr cItemBoatHandler              ItemAcaciaBoatHandler                      (E_ITEM_ACACIA_BOAT);
@@ -1061,7 +1098,11 @@ void cItemHandler::OnPlayerPlace(cPlayer & a_Player, const cItem & a_HeldItem, c
 	{
 		BLOCKTYPE PlaceBlock;
 		NIBBLETYPE PlaceMeta;
-		const auto PlacePosition = AddFaceDirection(a_ClickedPosition, a_ClickedBlockFace);
+		auto PlacePosition = AddFaceDirection(a_ClickedPosition, a_ClickedBlockFace);
+		if (ShouldPlaceOnTopOfPartialBlock(a_ClickedBlockType, a_HeldItem, a_ClickedBlockFace))
+		{
+			PlacePosition = a_ClickedPosition.addedY(1);
+		}
 
 		if (!cChunkDef::IsValidHeight(PlacePosition) || !World.GetBlockTypeMeta(PlacePosition, PlaceBlock, PlaceMeta))
 		{

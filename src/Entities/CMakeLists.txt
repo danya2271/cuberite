@@ -22,6 +22,7 @@ target_sources(
 	Pickup.cpp
 	Player.cpp
 	ProjectileEntity.cpp
+	StairSeat.cpp
 	SplashPotionEntity.cpp
 	TNTEntity.cpp
 	ThrownEggEntity.cpp
@@ -50,6 +51,7 @@ target_sources(
 	Pickup.h
 	Player.h
 	ProjectileEntity.h
+	StairSeat.h
 	SplashPotionEntity.h
 	TNTEntity.h
 	ThrownEggEntity.h
