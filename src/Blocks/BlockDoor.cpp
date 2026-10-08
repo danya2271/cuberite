@@ -52,8 +52,13 @@ bool cBlockDoorHandler::OnUse(
 ) const
 {
 	UNUSED(a_WorldInterface);
-	UNUSED(a_BlockFace);
 	UNUSED(a_CursorPos);
+
+	if (IsDoorItemType(a_Player.GetEquippedItem().m_ItemType))
+	{
+		OnCancelRightClick(a_ChunkInterface, a_WorldInterface, a_Player, a_BlockPos, a_BlockFace);
+		return false;
+	}
 
 	switch (a_ChunkInterface.GetBlock(a_BlockPos))
 	{
@@ -227,6 +232,5 @@ NIBBLETYPE cBlockDoorHandler::MetaMirrorYZ(NIBBLETYPE a_Meta) const
 	// Not Facing North or South; No change.
 	return a_Meta;
 }
-
 
 

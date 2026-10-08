@@ -447,6 +447,7 @@ public:
 	/** Spawns an falling block entity at the given position.
 	Returns the UniqueID of the spawned falling block, or cEntity::INVALID_ID on failure. */
 	UInt32 SpawnFallingBlock(Vector3d a_Pos, BLOCKTYPE a_BlockType, NIBBLETYPE a_BlockMeta);
+	UInt32 SpawnStaticFallingBlock(Vector3i a_BlockPos, BLOCKTYPE a_BlockType, NIBBLETYPE a_BlockMeta);
 
 	/** Spawns an falling block entity at the given position.
 	Returns the UniqueID of the spawned falling block, or cEntity::INVALID_ID on failure. */

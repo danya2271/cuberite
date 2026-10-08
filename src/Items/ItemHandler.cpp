@@ -91,8 +91,10 @@
 #include "ItemVines.h"
 
 #include "../Blocks/BlockHandler.h"
+#include "../Blocks/BlockDoor.h"
 #include "../Blocks/BlockSlab.h"
 #include "../Blocks/BlockStairs.h"
+#include "../Entities/FallingBlock.h"
 #include "SimplePlaceableItemHandler.h"
 
 
@@ -121,16 +123,108 @@ namespace
 
 
 
-	bool ShouldPlaceOnTopOfPartialBlock(const BLOCKTYPE a_ClickedBlockType, const cItem & a_HeldItem, const eBlockFace a_ClickedBlockFace)
+	bool IsDoorItem(const cItem & a_Item)
 	{
-		if (a_ClickedBlockFace == BLOCK_FACE_BOTTOM)
+		switch (a_Item.m_ItemType)
+		{
+			case E_ITEM_ACACIA_DOOR:
+			case E_ITEM_BIRCH_DOOR:
+			case E_ITEM_DARK_OAK_DOOR:
+			case E_ITEM_IRON_DOOR:
+			case E_ITEM_JUNGLE_DOOR:
+			case E_ITEM_SPRUCE_DOOR:
+			case E_ITEM_WOODEN_DOOR:
+			{
+				return true;
+			}
+			default:
+			{
+				return false;
+			}
+		}
+	}
+
+
+
+	BLOCKTYPE DoorItemToBlock(const cItem & a_Item)
+	{
+		switch (a_Item.m_ItemType)
+		{
+			case E_ITEM_WOODEN_DOOR:   return E_BLOCK_OAK_DOOR;
+			case E_ITEM_IRON_DOOR:     return E_BLOCK_IRON_DOOR;
+			case E_ITEM_SPRUCE_DOOR:   return E_BLOCK_SPRUCE_DOOR;
+			case E_ITEM_BIRCH_DOOR:    return E_BLOCK_BIRCH_DOOR;
+			case E_ITEM_JUNGLE_DOOR:   return E_BLOCK_JUNGLE_DOOR;
+			case E_ITEM_DARK_OAK_DOOR: return E_BLOCK_DARK_OAK_DOOR;
+			case E_ITEM_ACACIA_DOOR:   return E_BLOCK_ACACIA_DOOR;
+			default: UNREACHABLE("Unhandled door item type");
+		}
+	}
+
+
+
+	bool PlaceStaticDoor(cPlayer & a_Player, const cItem & a_HeldItem, const Vector3i a_ClickedPosition, const NIBBLETYPE a_ClickedBlockMeta)
+	{
+		auto & World = *a_Player.GetWorld();
+		auto LowerPosition = ((a_ClickedBlockMeta & 0x08) == 0) ? a_ClickedPosition : a_ClickedPosition.addedY(-1);
+		auto UpperPosition = LowerPosition.addedY(1);
+		if (!cChunkDef::IsValidHeight(LowerPosition) || !cChunkDef::IsValidHeight(UpperPosition))
 		{
 			return false;
 		}
 
+		const auto LowerMeta = cBlockDoorHandler::YawToMetaData(a_Player.GetYaw());
+		const auto RelDirToOutside = cBlockDoorHandler::GetRelativeDirectionToOutside(LowerMeta);
+		auto LeftNeighborPos = RelDirToOutside;
+		LeftNeighborPos.TurnCW();
+		LeftNeighborPos.Move(LowerPosition);
+		auto RightNeighborPos = RelDirToOutside;
+		RightNeighborPos.TurnCCW();
+		RightNeighborPos.Move(LowerPosition);
+
+		const auto LeftNeighborBlock = World.GetBlock(LeftNeighborPos);
+		const auto RightNeighborBlock = World.GetBlock(RightNeighborPos);
+		const NIBBLETYPE UpperMeta =
+			(cBlockDoorHandler::IsDoorBlockType(LeftNeighborBlock) ||
+			(
+				!cBlockInfo::IsSolid(LeftNeighborBlock) &&
+				cBlockInfo::IsSolid(RightNeighborBlock) &&
+				!cBlockDoorHandler::IsDoorBlockType(RightNeighborBlock)
+			)) ? 0x09 : 0x08;
+
+		const auto DoorBlock = DoorItemToBlock(a_HeldItem);
+		return cFallingBlock::PlaceStaticBlocks(World,
+			{
+				{LowerPosition, DoorBlock, LowerMeta},
+				{UpperPosition, DoorBlock, UpperMeta},
+			}
+		);
+	}
+
+
+
+	bool IsLayeredPlacement(const BLOCKTYPE a_ClickedBlockType, const cItem & a_HeldItem)
+	{
 		const bool IsPartialBlock = cBlockSlabHandler::IsAnySlabType(a_ClickedBlockType) || cBlockStairsHandler::IsAnyStairType(a_ClickedBlockType);
 		const bool IsSlab = cBlockSlabHandler::IsAnySlabType(static_cast<BLOCKTYPE>(a_HeldItem.m_ItemType));
 		return (IsGlassItem(a_HeldItem) && IsPartialBlock) || (IsSlab && IsBlockFence(a_ClickedBlockType));
+	}
+
+
+
+	NIBBLETYPE GetLayeredSlabMeta(const cItem & a_HeldItem, const eBlockFace a_ClickedBlockFace, const Vector3i a_CursorPosition)
+	{
+		const auto BaseMeta = static_cast<NIBBLETYPE>(a_HeldItem.m_ItemDamage & 0x07);
+		switch (a_ClickedBlockFace)
+		{
+			case BLOCK_FACE_TOP: return BaseMeta;
+			case BLOCK_FACE_BOTTOM: return BaseMeta | 0x08;
+			case BLOCK_FACE_EAST:
+			case BLOCK_FACE_NORTH:
+			case BLOCK_FACE_SOUTH:
+			case BLOCK_FACE_WEST: return (a_CursorPosition.y > 7) ? (BaseMeta | 0x08) : BaseMeta;
+			default: UNREACHABLE("Unhandled block face");
+		}
 	}
 
 
@@ -1083,50 +1177,72 @@ void cItemHandler::OnPlayerPlace(cPlayer & a_Player, const cItem & a_HeldItem, c
 {
 	const auto & World = *a_Player.GetWorld();
 
-	// Check if the block ignores build collision (water, grass etc.):
-	if (cBlockHandler::For(a_ClickedBlockType).DoesIgnoreBuildCollision(World, a_HeldItem, a_ClickedPosition, a_ClickedBlockMeta, a_ClickedBlockFace, true))
+	if (IsDoorItem(a_HeldItem) && cBlockDoorHandler::IsDoorBlockType(a_ClickedBlockType))
 	{
-		// Try to place the block at the clicked position:
-		if (!CommitPlacement(a_Player, a_HeldItem, a_ClickedPosition, a_ClickedBlockFace, a_CursorPosition))
+		if (!PlaceStaticDoor(a_Player, a_HeldItem, a_ClickedPosition, a_ClickedBlockMeta))
 		{
-			// The placement failed, the blocks have already been re-sent, re-send inventory:
+			a_Player.SendBlocksAround(a_ClickedPosition, 2);
+			a_Player.GetInventory().SendEquippedSlot();
+			return;
+		}
+	}
+	else if (IsLayeredPlacement(a_ClickedBlockType, a_HeldItem))
+	{
+		const auto BlockMeta = cBlockSlabHandler::IsAnySlabType(static_cast<BLOCKTYPE>(a_HeldItem.m_ItemType)) ?
+			GetLayeredSlabMeta(a_HeldItem, a_ClickedBlockFace, a_CursorPosition) :
+			static_cast<NIBBLETYPE>(a_HeldItem.m_ItemDamage & 0x0f);
+
+		if (!cFallingBlock::PlaceStaticBlocks(*a_Player.GetWorld(), {{a_ClickedPosition, static_cast<BLOCKTYPE>(a_HeldItem.m_ItemType), BlockMeta}}))
+		{
+			a_Player.SendBlocksAround(a_ClickedPosition, 2);
 			a_Player.GetInventory().SendEquippedSlot();
 			return;
 		}
 	}
 	else
 	{
-		BLOCKTYPE PlaceBlock;
-		NIBBLETYPE PlaceMeta;
-		auto PlacePosition = AddFaceDirection(a_ClickedPosition, a_ClickedBlockFace);
-		if (ShouldPlaceOnTopOfPartialBlock(a_ClickedBlockType, a_HeldItem, a_ClickedBlockFace))
-		{
-			PlacePosition = a_ClickedPosition.addedY(1);
-		}
 
-		if (!cChunkDef::IsValidHeight(PlacePosition) || !World.GetBlockTypeMeta(PlacePosition, PlaceBlock, PlaceMeta))
+		// Check if the block ignores build collision (water, grass etc.):
+		if (cBlockHandler::For(a_ClickedBlockType).DoesIgnoreBuildCollision(World, a_HeldItem, a_ClickedPosition, a_ClickedBlockMeta, a_ClickedBlockFace, true))
 		{
-			// The block is being placed outside the world, ignore this packet altogether (GH #128):
-			return;
+			// Try to place the block at the clicked position:
+			if (!CommitPlacement(a_Player, a_HeldItem, a_ClickedPosition, a_ClickedBlockFace, a_CursorPosition))
+			{
+				// The placement failed, the blocks have already been re-sent, re-send inventory:
+				a_Player.GetInventory().SendEquippedSlot();
+				return;
+			}
 		}
-
-		// Clicked on side of block, make sure that placement won't be cancelled if there is a slab able to be double slabbed.
-		// No need to do combinability (dblslab) checks, client will do that here.
-		if (!cBlockHandler::For(PlaceBlock).DoesIgnoreBuildCollision(World, a_HeldItem, PlacePosition, PlaceMeta, a_ClickedBlockFace, false))
+		else
 		{
-			// Tried to place a block into another?
-			// Happens when you place a block aiming at side of block with a torch on it or stem beside it.
-			a_Player.SendBlocksAround(PlacePosition, 2);
-			a_Player.GetInventory().SendEquippedSlot();
-			return;
-		}
+			BLOCKTYPE PlaceBlock;
+			NIBBLETYPE PlaceMeta;
+			const auto PlacePosition = AddFaceDirection(a_ClickedPosition, a_ClickedBlockFace);
 
-		// Try to place the block:
-		if (!CommitPlacement(a_Player, a_HeldItem, PlacePosition, a_ClickedBlockFace, a_CursorPosition))
-		{
-			// The placement failed, the blocks have already been re-sent, re-send inventory:
-			a_Player.GetInventory().SendEquippedSlot();
-			return;
+			if (!cChunkDef::IsValidHeight(PlacePosition) || !World.GetBlockTypeMeta(PlacePosition, PlaceBlock, PlaceMeta))
+			{
+				// The block is being placed outside the world, ignore this packet altogether (GH #128):
+				return;
+			}
+
+			// Clicked on side of block, make sure that placement won't be cancelled if there is a slab able to be double slabbed.
+			// No need to do combinability (dblslab) checks, client will do that here.
+			if (!cBlockHandler::For(PlaceBlock).DoesIgnoreBuildCollision(World, a_HeldItem, PlacePosition, PlaceMeta, a_ClickedBlockFace, false))
+			{
+				// Tried to place a block into another?
+				// Happens when you place a block aiming at side of block with a torch on it or stem beside it.
+				a_Player.SendBlocksAround(PlacePosition, 2);
+				a_Player.GetInventory().SendEquippedSlot();
+				return;
+			}
+
+			// Try to place the block:
+			if (!CommitPlacement(a_Player, a_HeldItem, PlacePosition, a_ClickedBlockFace, a_CursorPosition))
+			{
+				// The placement failed, the blocks have already been re-sent, re-send inventory:
+				a_Player.GetInventory().SendEquippedSlot();
+				return;
+			}
 		}
 	}
 

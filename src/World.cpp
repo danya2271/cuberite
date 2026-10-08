@@ -1940,6 +1940,20 @@ UInt32 cWorld::SpawnFallingBlock(Vector3d a_Pos, BLOCKTYPE a_BlockType, NIBBLETY
 
 
 
+UInt32 cWorld::SpawnStaticFallingBlock(const Vector3i a_BlockPos, const BLOCKTYPE a_BlockType, const NIBBLETYPE a_BlockMeta)
+{
+	auto FallingBlock = std::make_unique<cFallingBlock>(Vector3d(a_BlockPos.x + 0.5, a_BlockPos.y, a_BlockPos.z + 0.5), a_BlockType, a_BlockMeta, true);
+	auto FallingBlockPtr = FallingBlock.get();
+	const auto ID = FallingBlock->GetUniqueID();
+	if (!FallingBlockPtr->Initialize(std::move(FallingBlock), *this))
+	{
+		return cEntity::INVALID_ID;
+	}
+	return ID;
+}
+
+
+
 
 
 UInt32 cWorld::SpawnExperienceOrb(Vector3d a_Pos, int a_Reward)

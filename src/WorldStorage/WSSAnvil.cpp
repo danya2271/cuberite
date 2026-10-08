@@ -1815,8 +1815,9 @@ void cWSSAnvil::LoadFallingBlockFromNBT(cEntityList & a_Entities, const cParsedN
 
 	BLOCKTYPE Type = static_cast<BLOCKTYPE>(a_NBT.GetInt(TypeIdx));
 	NIBBLETYPE Meta = static_cast<NIBBLETYPE>(a_NBT.GetByte(MetaIdx));
+	const auto IsStatic = (a_NBT.FindChildByName(a_TagIdx, "CuberiteStatic") >= 0);
 
-	auto FallingBlock = std::make_unique<cFallingBlock>(Vector3i(0, 0, 0), Type, Meta);
+	auto FallingBlock = std::make_unique<cFallingBlock>(Vector3i(0, 0, 0), Type, Meta, IsStatic);
 	if (!LoadEntityBaseFromNBT(*FallingBlock.get(), a_NBT, a_TagIdx))
 	{
 		return;

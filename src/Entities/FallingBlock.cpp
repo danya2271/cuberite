@@ -2,6 +2,7 @@
 
 #include "FallingBlock.h"
 #include "../BlockInfo.h"
+#include "../Blocks/BlockHandler.h"
 #include "../World.h"
 #include "../ClientHandle.h"
 #include "../Simulator/SandSimulator.h"
@@ -11,13 +12,65 @@
 
 
 
-cFallingBlock::cFallingBlock(Vector3d a_Position, BLOCKTYPE a_BlockType, NIBBLETYPE a_BlockMeta):
+cFallingBlock::cFallingBlock(Vector3d a_Position, BLOCKTYPE a_BlockType, NIBBLETYPE a_BlockMeta, bool a_IsStatic):
 	Super(etFallingBlock, a_Position, 0.98f, 0.98f),
 	m_BlockType(a_BlockType),
-	m_BlockMeta(a_BlockMeta)
+	m_BlockMeta(a_BlockMeta),
+	m_IsStatic(a_IsStatic)
 {
-	SetGravity(-16.0f);
-	SetAirDrag(0.02f);
+	SetGravity(a_IsStatic ? 0.0f : -16.0f);
+	SetAirDrag(a_IsStatic ? 0.0f : 0.02f);
+}
+
+
+
+bool cFallingBlock::HasStaticAt(cWorld & a_World, const Vector3i a_BlockPos)
+{
+	bool Found = false;
+	a_World.ForEachEntityInBox(cBoundingBox(a_BlockPos, 1, 1), [&Found, a_BlockPos](cEntity & a_Entity)
+		{
+			if (!a_Entity.IsFallingBlock())
+			{
+				return false;
+			}
+
+			const auto & FallingBlock = static_cast<const cFallingBlock &>(a_Entity);
+			if (FallingBlock.IsStatic() && (Vector3i(FloorC(FallingBlock.GetPosX()), FloorC(FallingBlock.GetPosY()), FloorC(FallingBlock.GetPosZ())) == a_BlockPos))
+			{
+				Found = true;
+				return true;
+			}
+			return false;
+		}
+	);
+	return Found;
+}
+
+
+
+bool cFallingBlock::PlaceStaticBlocks(cWorld & a_World, const std::initializer_list<sStaticBlock> a_Blocks)
+{
+	for (const auto & Block: a_Blocks)
+	{
+		if (!cChunkDef::IsValidHeight(Block.Position) || HasStaticAt(a_World, Block.Position))
+		{
+			return false;
+		}
+
+		for (const auto & OtherBlock: a_Blocks)
+		{
+			if ((&Block != &OtherBlock) && (Block.Position == OtherBlock.Position))
+			{
+				return false;
+			}
+		}
+	}
+
+	for (const auto & Block: a_Blocks)
+	{
+		a_World.SpawnStaticFallingBlock(Block.Position, Block.BlockType, Block.BlockMeta);
+	}
+	return true;
 }
 
 
@@ -31,10 +84,37 @@ void cFallingBlock::SpawnOn(cClientHandle & a_ClientHandle)
 
 
 
+void cFallingBlock::GetDrops(cItems & a_Drops, cEntity * a_Killer)
+{
+	UNUSED(a_Killer);
+	if (m_IsStatic)
+	{
+		a_Drops = cBlockHandler::For(m_BlockType).ConvertToPickups(m_BlockMeta);
+	}
+}
+
+
+
 
 
 void cFallingBlock::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 {
+	if (m_IsStatic)
+	{
+		if (GetHealth() <= 0)
+		{
+			Destroy();
+			return;
+		}
+
+		const auto BlockPos = Vector3i(FloorC(GetPosX()), FloorC(GetPosY()), FloorC(GetPosZ()));
+		if (!cChunkDef::IsValidHeight(BlockPos) || (m_World->GetBlock(BlockPos) == E_BLOCK_AIR))
+		{
+			Destroy();
+		}
+		return;
+	}
+
 	// GetWorld()->BroadcastTeleportEntity(*this);  // Test position
 
 	int BlockX = POSX_TOINT;
@@ -104,7 +184,4 @@ void cFallingBlock::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		BroadcastMovementUpdate();
 	}
 }
-
-
-
 

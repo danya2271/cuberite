@@ -720,6 +720,10 @@ public:
 			AddBasicEntity(a_FallingBlock, "FallingSand");
 			mWriter.AddInt("TileID", a_FallingBlock->GetBlockType());
 			mWriter.AddByte("Data", a_FallingBlock->GetBlockMeta());
+			if (a_FallingBlock->IsStatic())
+			{
+				mWriter.AddByte("CuberiteStatic", 1);
+			}
 			mWriter.AddByte("Time", 1);  // Unused in Cuberite, Vanilla said to need nonzero
 			mWriter.AddByte("DropItem", 1);
 			mWriter.AddByte("HurtEntities", a_FallingBlock->GetBlockType() == E_BLOCK_ANVIL);

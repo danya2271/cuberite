@@ -185,18 +185,6 @@ private:
 	}
 
 
-
-	virtual bool DoesIgnoreBuildCollision(const cWorld & a_World, const cItem & a_HeldItem, const Vector3i a_Position, const NIBBLETYPE a_Meta, const eBlockFace a_ClickedBlockFace, const bool a_ClickedDirectly) const override
-	{
-		UNUSED(a_World);
-		UNUSED(a_Position);
-		UNUSED(a_Meta);
-		UNUSED(a_ClickedBlockFace);
-		return IsDoorItemType(a_HeldItem.m_ItemType) && !a_ClickedDirectly;
-	}
-
-
-
 	static bool IsDoorItemType(const short a_ItemType)
 	{
 		switch (a_ItemType)
@@ -311,4 +299,3 @@ private:
 		}
 	}
 } ;
-
