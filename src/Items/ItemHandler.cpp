@@ -1175,7 +1175,7 @@ const cItemHandler & cItemHandler::For(int a_ItemType)
 
 void cItemHandler::OnPlayerPlace(cPlayer & a_Player, const cItem & a_HeldItem, const Vector3i a_ClickedPosition, const BLOCKTYPE a_ClickedBlockType, const NIBBLETYPE a_ClickedBlockMeta, const eBlockFace a_ClickedBlockFace, const Vector3i a_CursorPosition) const
 {
-	const auto & World = *a_Player.GetWorld();
+	auto & World = *a_Player.GetWorld();
 
 	if (IsDoorItem(a_HeldItem) && cBlockDoorHandler::IsDoorBlockType(a_ClickedBlockType))
 	{
@@ -1192,7 +1192,24 @@ void cItemHandler::OnPlayerPlace(cPlayer & a_Player, const cItem & a_HeldItem, c
 			GetLayeredSlabMeta(a_HeldItem, a_ClickedBlockFace, a_CursorPosition) :
 			static_cast<NIBBLETYPE>(a_HeldItem.m_ItemDamage & 0x0f);
 
-		if (!cFallingBlock::PlaceStaticBlocks(*a_Player.GetWorld(), {{a_ClickedPosition, static_cast<BLOCKTYPE>(a_HeldItem.m_ItemType), BlockMeta}}))
+		if (IsGlassItem(a_HeldItem))
+		{
+			if (!cFallingBlock::PlaceStaticBlocks(World, {{a_ClickedPosition, a_ClickedBlockType, a_ClickedBlockMeta}}))
+			{
+				a_Player.SendBlocksAround(a_ClickedPosition, 2);
+				a_Player.GetInventory().SendEquippedSlot();
+				return;
+			}
+
+			if (!a_Player.PlaceBlock(a_ClickedPosition, static_cast<BLOCKTYPE>(a_HeldItem.m_ItemType), BlockMeta))
+			{
+				cFallingBlock::DestroyStaticAt(World, a_ClickedPosition);
+				a_Player.SendBlocksAround(a_ClickedPosition, 2);
+				a_Player.GetInventory().SendEquippedSlot();
+				return;
+			}
+		}
+		else if (!cFallingBlock::PlaceStaticBlocks(World, {{a_ClickedPosition, static_cast<BLOCKTYPE>(a_HeldItem.m_ItemType), BlockMeta}}))
 		{
 			a_Player.SendBlocksAround(a_ClickedPosition, 2);
 			a_Player.GetInventory().SendEquippedSlot();

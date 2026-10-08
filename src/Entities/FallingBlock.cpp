@@ -48,6 +48,37 @@ bool cFallingBlock::HasStaticAt(cWorld & a_World, const Vector3i a_BlockPos)
 
 
 
+bool cFallingBlock::DestroyStaticAt(cWorld & a_World, const Vector3i a_BlockPos)
+{
+	cFallingBlock * Found = nullptr;
+	a_World.ForEachEntityInBox(cBoundingBox(a_BlockPos, 1, 1), [&Found, a_BlockPos](cEntity & a_Entity)
+		{
+			if (!a_Entity.IsFallingBlock())
+			{
+				return false;
+			}
+
+			auto & FallingBlock = static_cast<cFallingBlock &>(a_Entity);
+			if (FallingBlock.IsStatic() && (Vector3i(FloorC(FallingBlock.GetPosX()), FloorC(FallingBlock.GetPosY()), FloorC(FallingBlock.GetPosZ())) == a_BlockPos))
+			{
+				Found = &FallingBlock;
+				return true;
+			}
+			return false;
+		}
+	);
+
+	if (Found == nullptr)
+	{
+		return false;
+	}
+
+	Found->Destroy();
+	return true;
+}
+
+
+
 bool cFallingBlock::PlaceStaticBlocks(cWorld & a_World, const std::initializer_list<sStaticBlock> a_Blocks)
 {
 	for (const auto & Block: a_Blocks)
@@ -108,8 +139,15 @@ void cFallingBlock::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		}
 
 		const auto BlockPos = Vector3i(FloorC(GetPosX()), FloorC(GetPosY()), FloorC(GetPosZ()));
-		if (!cChunkDef::IsValidHeight(BlockPos) || (m_World->GetBlock(BlockPos) == E_BLOCK_AIR))
+		if (!cChunkDef::IsValidHeight(BlockPos))
 		{
+			Destroy();
+			return;
+		}
+
+		if (m_World->GetBlock(BlockPos) == E_BLOCK_AIR)
+		{
+			m_World->SetBlock(BlockPos, m_BlockType, m_BlockMeta);
 			Destroy();
 		}
 		return;
@@ -184,4 +222,3 @@ void cFallingBlock::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		BroadcastMovementUpdate();
 	}
 }
-
