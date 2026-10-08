@@ -89,7 +89,8 @@ bool cLineBlockTracer::FirstSolidHitTrace(
 		public cCallbacks
 	{
 	public:
-		cSolidHitCallbacks(const Vector3d & a_CBStart, const Vector3d & a_CBEnd, Vector3d & a_CBHitCoords, Vector3i & a_CBHitBlockCoords, eBlockFace & a_CBHitBlockFace):
+		cSolidHitCallbacks(cWorld & a_CBWorld, const Vector3d & a_CBStart, const Vector3d & a_CBEnd, Vector3d & a_CBHitCoords, Vector3i & a_CBHitBlockCoords, eBlockFace & a_CBHitBlockFace):
+			m_World(a_CBWorld),
 			m_Start(a_CBStart),
 			m_End(a_CBEnd),
 			m_HitCoords(a_CBHitCoords),
@@ -100,6 +101,22 @@ bool cLineBlockTracer::FirstSolidHitTrace(
 
 		virtual bool OnNextBlock(Vector3i a_BlockPos, BLOCKTYPE a_BlockType, NIBBLETYPE a_BlockMeta, eBlockFace a_EntryFace) override
 		{
+			if (IsBlockDoor(a_BlockType))
+			{
+				if ((a_BlockMeta & 0x08) != 0)
+				{
+					BLOCKTYPE BottomBlockType;
+					NIBBLETYPE BottomBlockMeta;
+					if (m_World.GetBlockTypeMeta(a_BlockPos.addedY(-1), BottomBlockType, BottomBlockMeta) && IsBlockDoor(BottomBlockType))
+					{
+						a_BlockMeta = BottomBlockMeta;
+					}
+				}
+				if ((a_BlockMeta & 0x04) != 0)
+				{
+					return false;
+				}
+			}
 			if (!cBlockInfo::IsSolid(a_BlockType))
 			{
 				return false;
@@ -121,12 +138,13 @@ bool cLineBlockTracer::FirstSolidHitTrace(
 		}
 
 	protected:
+		cWorld & m_World;
 		const Vector3d & m_Start;
 		const Vector3d & m_End;
 		Vector3d & m_HitCoords;
 		Vector3i & m_HitBlockCoords;
 		eBlockFace & m_HitBlockFace;
-	} callbacks(a_Start, a_End, a_HitCoords, a_HitBlockCoords, a_HitBlockFace);
+	} callbacks(a_World, a_Start, a_End, a_HitCoords, a_HitBlockCoords, a_HitBlockFace);
 	return !Trace(a_World, callbacks, a_Start, a_End);
 }
 
@@ -341,6 +359,5 @@ bool cLineBlockTracer::ChunkCallback(cChunk * a_Chunk)
 		}
 	}
 }
-
 
 

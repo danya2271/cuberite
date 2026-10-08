@@ -809,6 +809,8 @@ void cMonster::TogglePlayerOwnerFollowing(void)
 	if (!m_IsFollowingPlayerOwner)
 	{
 		StopMovingToPosition();
+		SetSpeedX(0);
+		SetSpeedZ(0);
 	}
 	if (m_World != nullptr)
 	{

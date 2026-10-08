@@ -16,6 +16,30 @@ bool IsBlockWater(BLOCKTYPE a_BlockType)
 
 
 
+bool IsBlockDoor(BLOCKTYPE a_BlockType)
+{
+	switch (a_BlockType)
+	{
+		case E_BLOCK_ACACIA_DOOR:
+		case E_BLOCK_BIRCH_DOOR:
+		case E_BLOCK_DARK_OAK_DOOR:
+		case E_BLOCK_IRON_DOOR:
+		case E_BLOCK_JUNGLE_DOOR:
+		case E_BLOCK_OAK_DOOR:
+		case E_BLOCK_SPRUCE_DOOR:
+		{
+			return true;
+		}
+		default:
+		{
+			return false;
+		}
+	}
+}
+
+
+
+
 bool IsBlockIce(BLOCKTYPE a_BlockType)
 {
 	switch (a_BlockType)

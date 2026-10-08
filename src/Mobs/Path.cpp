@@ -507,6 +507,23 @@ void cPath::FillCellAttributes(cPathCell & a_Cell)
 	m_Chunk->GetBlockTypeMeta(RelX, Location.y, RelZ, BlockType, BlockMeta);
 	a_Cell.m_BlockType = BlockType;
 	a_Cell.m_BlockMeta = BlockMeta;
+	if (IsBlockDoor(BlockType) && ((BlockMeta & 0x08) != 0) && cChunkDef::IsValidHeight(Location.addedY(-1)))
+	{
+		const auto BottomLocation = Location.addedY(-1);
+		auto BottomChunk = m_Chunk->GetNeighborChunk(BottomLocation.x, BottomLocation.z);
+		if ((BottomChunk != nullptr) && BottomChunk->IsValid())
+		{
+			const auto BottomRelX = BottomLocation.x - BottomChunk->GetPosX() * cChunkDef::Width;
+			const auto BottomRelZ = BottomLocation.z - BottomChunk->GetPosZ() * cChunkDef::Width;
+			BLOCKTYPE BottomBlockType;
+			NIBBLETYPE BottomBlockMeta;
+			BottomChunk->GetBlockTypeMeta(BottomRelX, BottomLocation.y, BottomRelZ, BottomBlockType, BottomBlockMeta);
+			if (IsBlockDoor(BottomBlockType))
+			{
+				BlockMeta = static_cast<NIBBLETYPE>((BlockMeta & 0xF8) | (BottomBlockMeta & 0x04));
+			}
+		}
+	}
 
 
 	if (BlockTypeIsSpecial(BlockType))
@@ -608,10 +625,13 @@ bool cPath::BlockTypeIsSpecial(BLOCKTYPE a_Type)
 		return true;
 	}
 
+	if (IsBlockDoor(a_Type))
+	{
+		return true;
+	}
+
 	switch (a_Type)
 	{
-		case E_BLOCK_OAK_DOOR:
-		case E_BLOCK_DARK_OAK_DOOR:
 		case E_BLOCK_TRAPDOOR:
 		case E_BLOCK_WATER:
 		case E_BLOCK_STATIONARY_WATER:
@@ -634,6 +654,10 @@ bool cPath::SpecialIsSolidFromThisDirection(BLOCKTYPE a_Type, NIBBLETYPE a_Meta,
 	if (a_Direction == Vector3i(0, 0, 0))
 	{
 		return false;
+	}
+	if (IsBlockDoor(a_Type))
+	{
+		return (a_Meta & 0x04) == 0;
 	}
 
 

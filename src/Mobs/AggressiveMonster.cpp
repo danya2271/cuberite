@@ -115,17 +115,35 @@ void cAggressiveMonster::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		{
 			bool OwnerFound = GetWorld()->DoWithPlayerByUUID(GetPlayerOwnerUUID(), [&](cPlayer & a_Player)
 			{
-				MoveToPosition(a_Player.GetPosition());
+				const auto OwnerPosition = a_Player.GetPosition();
+				Vector3d Direction = GetPosition() - OwnerPosition;
+				Direction.y = 0;
+				const double DistanceSquared = Direction.SqrLength();
+				if (DistanceSquared <= (3.0 * 3.0))
+				{
+					StopMovingToPosition();
+					SetSpeedX(0);
+					SetSpeedZ(0);
+				}
+				else
+				{
+					Direction.Normalize();
+					MoveToPosition(OwnerPosition + Direction * 3.0);
+				}
 				return true;
 			});
 			if (!OwnerFound)
 			{
 				StopMovingToPosition();
+				SetSpeedX(0);
+				SetSpeedZ(0);
 			}
 		}
 		else
 		{
 			StopMovingToPosition();
+			SetSpeedX(0);
+			SetSpeedZ(0);
 		}
 		return;
 	}

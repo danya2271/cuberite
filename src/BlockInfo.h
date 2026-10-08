@@ -67,6 +67,8 @@ public:
 
 bool IsBlockWater(BLOCKTYPE a_BlockType);
 
+bool IsBlockDoor(BLOCKTYPE a_BlockType);
+
 bool IsBlockIce(BLOCKTYPE a_BlockType);
 
 bool IsBlockWaterOrIce(BLOCKTYPE a_BlockType);

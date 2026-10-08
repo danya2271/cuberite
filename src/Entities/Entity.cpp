@@ -1023,12 +1023,31 @@ void cEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 	int RelBlockX = BlockX - (NextChunk->GetPosX() * cChunkDef::Width);
 	int RelBlockZ = BlockZ - (NextChunk->GetPosZ() * cChunkDef::Width);
 	BLOCKTYPE BlockIn = NextChunk->GetBlock( RelBlockX, BlockY, RelBlockZ);
+	NIBBLETYPE BlockInMeta = NextChunk->GetMeta(RelBlockX, BlockY, RelBlockZ);
 	BLOCKTYPE BlockBelow = (BlockY > 0) ? NextChunk->GetBlock(RelBlockX, BlockY - 1, RelBlockZ) : E_BLOCK_AIR;
-	if (!cBlockInfo::IsSolid(BlockIn))  // Making sure we are not inside a solid block
+	NIBBLETYPE BlockBelowMeta = (BlockY > 0) ? NextChunk->GetMeta(RelBlockX, BlockY - 1, RelBlockZ) : 0;
+	auto IsSolidForEntity = [&](const Vector3i & a_BlockPos, BLOCKTYPE a_BlockType, NIBBLETYPE a_BlockMeta)
+	{
+		if (!IsBlockDoor(a_BlockType))
+		{
+			return cBlockInfo::IsSolid(a_BlockType);
+		}
+		if ((a_BlockMeta & 0x08) != 0)
+		{
+			BLOCKTYPE BottomBlockType;
+			NIBBLETYPE BottomBlockMeta;
+			if (m_World->GetBlockTypeMeta(a_BlockPos.addedY(-1), BottomBlockType, BottomBlockMeta) && IsBlockDoor(BottomBlockType))
+			{
+				a_BlockMeta = BottomBlockMeta;
+			}
+		}
+		return (a_BlockMeta & 0x04) == 0;
+	};
+	if (!IsSolidForEntity({BlockX, BlockY, BlockZ}, BlockIn, BlockInMeta))  // Making sure we are not inside a solid block
 	{
 		if (m_bOnGround)  // check if it's still on the ground
 		{
-			if (!cBlockInfo::IsSolid(BlockBelow))  // Check if block below is air or water.
+			if (!IsSolidForEntity({BlockX, BlockY - 1, BlockZ}, BlockBelow, BlockBelowMeta))  // Check if block below is air or water.
 			{
 				m_bOnGround = false;
 			}
@@ -1053,12 +1072,17 @@ void cEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		bool IsNoAirSurrounding = true;
 		for (size_t i = 0; i < ARRAYCOUNT(gCrossCoords); i++)
 		{
-			if (!NextChunk->UnboundedRelGetBlockType(RelBlockX + gCrossCoords[i].x, BlockY, RelBlockZ + gCrossCoords[i].z, GotBlock))
+			NIBBLETYPE GotMeta;
+			const Vector3i GotRelPos(RelBlockX + gCrossCoords[i].x, BlockY, RelBlockZ + gCrossCoords[i].z);
+			if (
+				!NextChunk->UnboundedRelGetBlockType(GotRelPos, GotBlock) ||
+				!NextChunk->UnboundedRelGetBlockMeta(GotRelPos, GotMeta)
+			)
 			{
 				// The pickup is too close to an unloaded chunk, bail out of any physics handling
 				return;
 			}
-			if (!cBlockInfo::IsSolid(GotBlock))
+			if (!IsSolidForEntity({BlockX + gCrossCoords[i].x, BlockY, BlockZ + gCrossCoords[i].z}, GotBlock, GotMeta))
 			{
 				NextPos.x += gCrossCoords[i].x;
 				NextPos.z += gCrossCoords[i].z;
