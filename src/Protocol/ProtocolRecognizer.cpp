@@ -7,10 +7,6 @@
 #include "Globals.h"
 
 #include "ProtocolRecognizer.h"
-#include "Protocol_1_8.h"
-#include "Protocol_1_9.h"
-#include "Protocol_1_10.h"
-#include "Protocol_1_11.h"
 #include "Protocol_1_12.h"
 #include "Protocol_1_13.h"
 #include "Protocol_1_14.h"
@@ -59,8 +55,6 @@ AString cMultiVersionProtocol::GetVersionTextFromInt(cProtocol::Version a_Protoc
 		case cProtocol::Version::v1_10_0:  return "1.10";
 		case cProtocol::Version::v1_11_0:  return "1.11";
 		case cProtocol::Version::v1_11_1:  return "1.11.1";
-		case cProtocol::Version::v1_12:    return "1.12";
-		case cProtocol::Version::v1_12_1:  return "1.12.1";
 		case cProtocol::Version::v1_12_2:  return "1.12.2";
 		case cProtocol::Version::v1_13:    return "1.13";
 		case cProtocol::Version::v1_13_1:  return "1.13.1";
@@ -325,16 +319,6 @@ std::unique_ptr<cProtocol> cMultiVersionProtocol::TryRecognizeLengthedProtocol(c
 
 	switch (ProtocolVersion)
 	{
-		case static_cast<UInt32>(cProtocol::Version::v1_8_0):  return std::make_unique<cProtocol_1_8_0> (&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_9_0):  return std::make_unique<cProtocol_1_9_0> (&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_9_1):  return std::make_unique<cProtocol_1_9_1> (&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_9_2):  return std::make_unique<cProtocol_1_9_2> (&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_9_4):  return std::make_unique<cProtocol_1_9_4> (&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_10_0): return std::make_unique<cProtocol_1_10_0>(&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_11_0): return std::make_unique<cProtocol_1_11_0>(&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_11_1): return std::make_unique<cProtocol_1_11_1>(&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_12):   return std::make_unique<cProtocol_1_12>  (&a_Client, ServerAddress, NextState);
-		case static_cast<UInt32>(cProtocol::Version::v1_12_1): return std::make_unique<cProtocol_1_12_1>(&a_Client, ServerAddress, NextState);
 		case static_cast<UInt32>(cProtocol::Version::v1_12_2): return std::make_unique<cProtocol_1_12_2>(&a_Client, ServerAddress, NextState);
 		case static_cast<UInt32>(cProtocol::Version::v1_13):   return std::make_unique<cProtocol_1_13>  (&a_Client, ServerAddress, NextState);
 		case static_cast<UInt32>(cProtocol::Version::v1_13_1): return std::make_unique<cProtocol_1_13_1>(&a_Client, ServerAddress, NextState);

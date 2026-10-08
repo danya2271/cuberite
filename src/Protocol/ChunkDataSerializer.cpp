@@ -1,7 +1,6 @@
 #include "Globals.h"
 #include "ChunkDataSerializer.h"
 #include "Protocol_1_8.h"
-#include "Protocol_1_9.h"
 #include "../ClientHandle.h"
 #include "../WorldStorage/FastNBT.h"
 
@@ -74,27 +73,9 @@ void cChunkDataSerializer::SendToClients(const int a_ChunkX, const int a_ChunkZ,
 	{
 		switch (static_cast<cProtocol::Version>(Client->GetProtocolVersion()))
 		{
-			case cProtocol::Version::v1_8_0:
-			{
-				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v47);
-				continue;
-			}
-			case cProtocol::Version::v1_9_0:
-			case cProtocol::Version::v1_9_1:
-			case cProtocol::Version::v1_9_2:
-			{
-				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v107);
-				continue;
-			}
-			case cProtocol::Version::v1_9_4:
-			case cProtocol::Version::v1_10_0:
-			case cProtocol::Version::v1_11_0:
-			case cProtocol::Version::v1_11_1:
-			case cProtocol::Version::v1_12:
-			case cProtocol::Version::v1_12_1:
 			case cProtocol::Version::v1_12_2:
 			{
-				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v110);
+				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v340);
 				continue;
 			}
 			case cProtocol::Version::v1_13:
@@ -117,6 +98,8 @@ void cChunkDataSerializer::SendToClients(const int a_ChunkX, const int a_ChunkZ,
 				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v477);
 				continue;
 			}
+			default:
+				UNREACHABLE("Unsupported chunk data serialization version");
 		}
 		UNREACHABLE("Unknown chunk data serialization version");
 	}
@@ -144,19 +127,9 @@ inline void cChunkDataSerializer::Serialize(const ClientHandles::value_type & a_
 
 	switch (a_CacheVersion)
 	{
-		case CacheVersion::v47:
+		case CacheVersion::v340:
 		{
-			Serialize47(a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap);
-			break;
-		}
-		case CacheVersion::v107:
-		{
-			Serialize107(a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap);
-			break;
-		}
-		case CacheVersion::v110:
-		{
-			Serialize110(a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap);
+			Serialize340(a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap);
 			break;
 		}
 		case CacheVersion::v393:
@@ -185,155 +158,7 @@ inline void cChunkDataSerializer::Serialize(const ClientHandles::value_type & a_
 
 
 
-inline void cChunkDataSerializer::Serialize47(const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap)
-{
-	// This function returns the fully compressed packet (including packet size), not the raw packet!
-
-	const auto Bitmask = GetSectionBitmask(a_BlockData, a_LightData);
-
-	// Create the packet:
-	m_Packet.WriteVarInt32(0x21);  // Packet id (Chunk Data packet)
-	m_Packet.WriteBEInt32(a_ChunkX);
-	m_Packet.WriteBEInt32(a_ChunkZ);
-	m_Packet.WriteBool(true);      // "Ground-up continuous", or rather, "biome data present" flag
-
-	// Minecraft 1.8 does not like completely empty packets
-	// Send one completely empty chunk section if this is the case
-	m_Packet.WriteBEUInt16(Bitmask.first ? Bitmask.first : 1);
-
-	// Write the chunk size:
-	// Account for the single empty section if sending an empty chunk
-	const int BiomeDataSize = cChunkDef::Width * cChunkDef::Width;
-	const size_t ChunkSize = (
-		(Bitmask.second ? Bitmask.second : 1) * (ChunkBlockData::SectionBlockCount * 2 + ChunkLightData::SectionLightCount * 2) +  // Blocks and lighting
-		BiomeDataSize    // Biome data
-	);
-	m_Packet.WriteVarInt32(static_cast<UInt32>(ChunkSize));
-
-	// Chunk written as seperate arrays of (blocktype + meta), blocklight and skylight
-	// each array stores all present sections of the same kind packed together
-
-	// Write the block types to the packet:
-	ChunkDef_ForEachSection(a_BlockData, a_LightData,
-	{
-		const bool BlocksExist = Blocks != nullptr;
-		const bool MetasExist = Metas != nullptr;
-
-		for (size_t BlockIdx = 0; BlockIdx != ChunkBlockData::SectionBlockCount; ++BlockIdx)
-		{
-			BLOCKTYPE BlockType = BlocksExist ? (*Blocks)[BlockIdx] : 0;
-			NIBBLETYPE BlockMeta = MetasExist ? cChunkDef::ExpandNibble(Metas->data(), BlockIdx) : 0;
-			m_Packet.WriteBEUInt8(static_cast<unsigned char>(BlockType << 4) | BlockMeta);
-			m_Packet.WriteBEUInt8(static_cast<unsigned char>(BlockType >> 4));
-		}
-	});
-
-	// Write the block lights:
-	ChunkDef_ForEachSection(a_BlockData, a_LightData,
-	{
-		if (BlockLights == nullptr)
-		{
-			m_Packet.WriteBuf(ChunkLightData::SectionLightCount, ChunkLightData::DefaultBlockLightValue);
-		}
-		else
-		{
-			m_Packet.WriteBuf(BlockLights->data(), BlockLights->size());
-		}
-	});
-
-	// Write the sky lights:
-	ChunkDef_ForEachSection(a_BlockData, a_LightData,
-	{
-		if (SkyLights == nullptr)
-		{
-			m_Packet.WriteBuf(ChunkLightData::SectionLightCount, ChunkLightData::DefaultSkyLightValue);
-		}
-		else
-		{
-			m_Packet.WriteBuf(SkyLights->data(), SkyLights->size());
-		}
-	});
-
-	// Serialize a single empty section if sending an empty chunk
-	if (!Bitmask.first)
-	{
-		// Block data (all air)
-		for (size_t i = 0; i < ChunkBlockData::SectionBlockCount * 2; i++)
-		{
-			m_Packet.WriteBEUInt8(0);
-		}
-		// Light data (XXX: sky light is not sent if in the nether)
-		m_Packet.WriteBuf(ChunkLightData::SectionLightCount, ChunkLightData::DefaultSkyLightValue);
-		m_Packet.WriteBuf(ChunkLightData::SectionLightCount, ChunkLightData::DefaultSkyLightValue);
-	}
-
-	// Write the biome data:
-	m_Packet.WriteBuf(a_BiomeMap, BiomeDataSize);
-}
-
-
-
-
-
-inline void cChunkDataSerializer::Serialize107(const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap)
-{
-	// This function returns the fully compressed packet (including packet size), not the raw packet!
-	// Below variables tagged static because of https://developercommunity.visualstudio.com/content/problem/367326
-
-	static constexpr UInt8 BitsPerEntry = 13;
-	static constexpr size_t ChunkSectionDataArraySize = (ChunkBlockData::SectionBlockCount * BitsPerEntry) / 8 / 8;  // Convert from bit count to long count
-
-	const auto Bitmask = GetSectionBitmask(a_BlockData, a_LightData);
-
-	// Create the packet:
-	m_Packet.WriteVarInt32(0x20);  // Packet id (Chunk Data packet)
-	m_Packet.WriteBEInt32(a_ChunkX);
-	m_Packet.WriteBEInt32(a_ChunkZ);
-	m_Packet.WriteBool(true);        // "Ground-up continuous", or rather, "biome data present" flag
-	m_Packet.WriteVarInt32(Bitmask.first);
-
-	size_t ChunkSectionSize = (
-		1 +                                // Bits per block - set to 13, so the global palette is used and the palette has a length of 0
-		1 +                                // Palette length
-		2 +                                // Data array length VarInt - 2 bytes for the current value
-		ChunkSectionDataArraySize * 8 +    // Actual block data - multiplied by 8 because first number is longs
-		ChunkLightData::SectionLightCount  // Block light
-	);
-
-	if (m_Dimension == dimOverworld)
-	{
-		// Sky light is only sent in the overworld.
-		ChunkSectionSize += ChunkLightData::SectionLightCount;
-	}
-
-	const size_t BiomeDataSize = cChunkDef::Width * cChunkDef::Width;
-	const size_t ChunkSize = (
-		ChunkSectionSize * Bitmask.second +
-		BiomeDataSize
-	);
-
-	// Write the chunk size:
-	m_Packet.WriteVarInt32(static_cast<UInt32>(ChunkSize));
-
-	// Write each chunk section...
-	ChunkDef_ForEachSection(a_BlockData, a_LightData,
-	{
-		m_Packet.WriteBEUInt8(BitsPerEntry);
-		m_Packet.WriteVarInt32(0);  // Palette length is 0
-		m_Packet.WriteVarInt32(static_cast<UInt32>(ChunkSectionDataArraySize));
-		WriteBlockSectionSeamless<&PaletteLegacy>(Blocks, Metas, BitsPerEntry);
-		WriteLightSectionGrouped(BlockLights, SkyLights);
-	});
-
-	// Write the biome data
-	m_Packet.WriteBuf(a_BiomeMap, BiomeDataSize);
-}
-
-
-
-
-
-inline void cChunkDataSerializer::Serialize110(const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap)
+inline void cChunkDataSerializer::Serialize340(const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap)
 {
 	// This function returns the fully compressed packet (including packet size), not the raw packet!
 	// Below variables tagged static because of https://developercommunity.visualstudio.com/content/problem/367326
@@ -386,7 +211,7 @@ inline void cChunkDataSerializer::Serialize110(const int a_ChunkX, const int a_C
 	// Write the biome data
 	m_Packet.WriteBuf(a_BiomeMap, BiomeDataSize);
 
-	// Identify 1.9.4's tile entity list as empty
+	// Identify 1.12.2's tile entity list as empty
 	m_Packet.WriteBEUInt8(0);
 }
 
@@ -449,7 +274,7 @@ inline void cChunkDataSerializer::Serialize393(const int a_ChunkX, const int a_C
 		m_Packet.WriteBEUInt32(static_cast<UInt32>(a_BiomeMap[i]));
 	}
 
-	// Identify 1.9.4's tile entity list as empty
+	// Identify 1.12.2's tile entity list as empty
 	m_Packet.WriteVarInt32(0);
 }
 
