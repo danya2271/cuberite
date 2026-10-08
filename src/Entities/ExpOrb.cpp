@@ -46,7 +46,11 @@ void cExpOrb::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 
 		if (Distance < 0.7f)
 		{
-			a_Player.DeltaExperience(m_Reward);
+			const int RemainingReward = a_Player.RepairItemsWithMending(m_Reward);
+			if (RemainingReward > 0)
+			{
+				a_Player.DeltaExperience(RemainingReward);
+			}
 
 			m_World->BroadcastSoundEffect("entity.experience_orb.pickup", GetPosition(), 0.5f, (0.75f + (static_cast<float>((GetUniqueID() * 23) % 32)) / 64));
 			Destroy();

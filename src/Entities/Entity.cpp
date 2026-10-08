@@ -273,6 +273,26 @@ void cEntity::TakeDamage(cEntity & a_Attacker)
 {
 	int RawDamage = a_Attacker.GetRawDamageAgainst(*this);
 	TakeDamage(dtAttack, &a_Attacker, RawDamage, a_Attacker.GetKnockbackAmountAgainst(*this));
+
+	const auto SweepingLevel = a_Attacker.GetEquippedWeapon().m_Enchantments.GetLevel(cEnchantments::enchSweepingEdge);
+	if ((SweepingLevel == 0) || !a_Attacker.IsPlayer() || !a_Attacker.IsOnGround() || a_Attacker.IsSprinting())
+	{
+		return;
+	}
+
+	const int SweepDamage = std::max(1, static_cast<int>(RawDamage * SweepingLevel / (SweepingLevel + 1)));
+	a_Attacker.GetWorld()->ForEachEntityInBox(cBoundingBox(GetPosition(), 1.0 + SweepingLevel * 0.5, 1.0),
+		[&a_Attacker, this, SweepDamage](cEntity & a_Entity)
+		{
+			if ((a_Entity.GetUniqueID() == GetUniqueID()) || (a_Entity.GetUniqueID() == a_Attacker.GetUniqueID()) || !a_Entity.IsPawn() || (a_Entity.GetHealth() <= 0))
+			{
+				return false;
+			}
+
+			a_Entity.TakeDamage(dtAttack, &a_Attacker, SweepDamage, static_cast<float>(SweepDamage), 0);
+			return false;
+		}
+	);
 }
 
 

@@ -2496,6 +2496,12 @@ void cSlotAreaInventoryBase::Clicked(cPlayer & a_Player, int a_SlotNum, eClickAc
 		return;
 	}
 
+	if (!a_Player.IsGameModeCreative() && !GetSlot(a_SlotNum, a_Player)->IsEmpty() && (GetSlot(a_SlotNum, a_Player)->m_Enchantments.GetLevel(cEnchantments::enchCurseOfBinding) > 0))
+	{
+		m_ParentWindow.BroadcastWholeWindow();
+		return;
+	}
+
 	// Survival inventory and all other windows' inventory has the same handling as normal slot areas
 	Super::Clicked(a_Player, a_SlotNum, a_ClickAction, a_ClickedItem);
 }
@@ -2580,6 +2586,12 @@ void cSlotAreaArmor::Clicked(cPlayer & a_Player, int a_SlotNum, eClickAction a_C
 		}
 
 		SetSlot(a_SlotNum, a_Player, a_ClickedItem);
+		return;
+	}
+
+	if (!a_Player.IsGameModeCreative() && !GetSlot(a_SlotNum, a_Player)->IsEmpty() && (GetSlot(a_SlotNum, a_Player)->m_Enchantments.GetLevel(cEnchantments::enchCurseOfBinding) > 0))
+	{
+		m_ParentWindow.BroadcastWholeWindow();
 		return;
 	}
 

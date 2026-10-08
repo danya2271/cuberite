@@ -27,6 +27,27 @@ cFallingBlock::cFallingBlock(Vector3d a_Position, BLOCKTYPE a_BlockType, NIBBLET
 bool cFallingBlock::HasStaticAt(cWorld & a_World, const Vector3i a_BlockPos)
 {
 	bool Found = false;
+	a_World.ForEachPendingEntity([&Found, a_BlockPos](cEntity & a_Entity)
+		{
+			if (!a_Entity.IsFallingBlock())
+			{
+				return false;
+			}
+
+			const auto & FallingBlock = static_cast<const cFallingBlock &>(a_Entity);
+			if (FallingBlock.IsStatic() && (Vector3i(FloorC(FallingBlock.GetPosX()), FloorC(FallingBlock.GetPosY()), FloorC(FallingBlock.GetPosZ())) == a_BlockPos))
+			{
+				Found = true;
+				return true;
+			}
+			return false;
+		}
+	);
+	if (Found)
+	{
+		return true;
+	}
+
 	a_World.ForEachEntityInBox(cBoundingBox(a_BlockPos, 1, 1), [&Found, a_BlockPos](cEntity & a_Entity)
 		{
 			if (!a_Entity.IsFallingBlock())
@@ -51,6 +72,27 @@ bool cFallingBlock::HasStaticAt(cWorld & a_World, const Vector3i a_BlockPos)
 bool cFallingBlock::DestroyStaticAt(cWorld & a_World, const Vector3i a_BlockPos)
 {
 	cFallingBlock * Found = nullptr;
+	a_World.ForEachPendingEntity([&Found, a_BlockPos](cEntity & a_Entity)
+		{
+			if (!a_Entity.IsFallingBlock())
+			{
+				return false;
+			}
+
+			auto & FallingBlock = static_cast<cFallingBlock &>(a_Entity);
+			if (FallingBlock.IsStatic() && (Vector3i(FloorC(FallingBlock.GetPosX()), FloorC(FallingBlock.GetPosY()), FloorC(FallingBlock.GetPosZ())) == a_BlockPos))
+			{
+				Found = &FallingBlock;
+				return true;
+			}
+			return false;
+		}
+	);
+	if (Found != nullptr)
+	{
+		return (a_World.RemoveEntity(*Found) != nullptr);
+	}
+
 	a_World.ForEachEntityInBox(cBoundingBox(a_BlockPos, 1, 1), [&Found, a_BlockPos](cEntity & a_Entity)
 		{
 			if (!a_Entity.IsFallingBlock())

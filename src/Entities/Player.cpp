@@ -313,6 +313,38 @@ int cPlayer::DeltaExperience(int a_Xp_delta)
 
 
 
+int cPlayer::RepairItemsWithMending(int a_Xp)
+{
+	while (a_Xp > 0)
+	{
+		std::vector<int> DamagedItems;
+		for (int SlotNum = 0; SlotNum < cInventory::invNumSlots; ++SlotNum)
+		{
+			const auto & Item = m_Inventory.GetSlot(SlotNum);
+			if (Item.IsDamageable() && (Item.m_ItemDamage > 0) && (Item.m_Enchantments.GetLevel(cEnchantments::enchMending) > 0))
+			{
+				DamagedItems.push_back(SlotNum);
+			}
+		}
+
+		if (DamagedItems.empty())
+		{
+			break;
+		}
+
+		const auto SlotNum = DamagedItems[GetRandomProvider().RandInt(static_cast<int>(DamagedItems.size() - 1))];
+		auto Item = m_Inventory.GetSlot(SlotNum);
+		Item.m_ItemDamage = static_cast<short>(std::max(0, static_cast<int>(Item.m_ItemDamage) - 2));
+		m_Inventory.SetSlot(SlotNum, Item);
+		--a_Xp;
+	}
+
+	return a_Xp;
+}
+
+
+
+
 
 void cPlayer::StartChargingBow(void)
 {
@@ -903,7 +935,14 @@ void cPlayer::KilledBy(TakeDamageInfo & a_TDI)
 
 	// Puke out all the items
 	cItems Pickups;
-	m_Inventory.CopyToItems(Pickups);
+	for (int SlotNum = 0; SlotNum < cInventory::invNumSlots; ++SlotNum)
+	{
+		const auto & Item = m_Inventory.GetSlot(SlotNum);
+		if (!Item.IsEmpty() && (Item.m_Enchantments.GetLevel(cEnchantments::enchCurseOfVanishing) == 0))
+		{
+			Pickups.push_back(Item);
+		}
+	}
 	m_Inventory.Clear();
 
 	if (GetName() == "Notch")
@@ -2836,6 +2875,41 @@ void cPlayer::AddKnownRecipe(UInt32 a_RecipeId)
 
 
 
+void cPlayer::TickFrostWalker()
+{
+	const auto FrostWalkerLevel = GetEquippedBoots().m_Enchantments.GetLevel(cEnchantments::enchFrostWalker);
+	if ((FrostWalkerLevel == 0) || (GetHealth() <= 0) || !IsOnGround())
+	{
+		return;
+	}
+
+	const int Radius = 2 + static_cast<int>(FrostWalkerLevel);
+	const int BlockY = FloorC(GetPosY()) - 1;
+	for (int BlockX = FloorC(GetPosX()) - Radius; BlockX <= FloorC(GetPosX()) + Radius; ++BlockX)
+	{
+		for (int BlockZ = FloorC(GetPosZ()) - Radius; BlockZ <= FloorC(GetPosZ()) + Radius; ++BlockZ)
+		{
+			const int DistanceX = BlockX - FloorC(GetPosX());
+			const int DistanceZ = BlockZ - FloorC(GetPosZ());
+			if ((DistanceX * DistanceX + DistanceZ * DistanceZ) > (Radius * Radius))
+			{
+				continue;
+			}
+
+			const Vector3i Position(BlockX, BlockY, BlockZ);
+			if (!cChunkDef::IsValidHeight(Position) || !IsBlockWater(m_World->GetBlock(Position)) || (m_World->GetBlock(Position.addedY(1)) != E_BLOCK_AIR))
+			{
+				continue;
+			}
+
+			m_World->SetBlock(Position, E_BLOCK_FROSTED_ICE, 0);
+		}
+	}
+}
+
+
+
+
 void cPlayer::TickFreezeCode()
 {
 	if (m_IsFrozen)
@@ -3289,6 +3363,7 @@ void cPlayer::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 	}
 
 	Super::Tick(a_Dt, a_Chunk);
+	TickFrostWalker();
 
 	// Handle charging the bow:
 	if (m_IsChargingBow)

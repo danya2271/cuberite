@@ -575,6 +575,27 @@ bool cItem::CanHaveEnchantment(int a_EnchantmentID)
 		return true;
 	}
 
+	if (a_EnchantmentID == cEnchantments::enchFrostWalker)
+	{
+		return ItemCategory::IsBoots(m_ItemType);
+	}
+	if (a_EnchantmentID == cEnchantments::enchCurseOfBinding)
+	{
+		return ItemCategory::IsArmor(m_ItemType);
+	}
+	if (a_EnchantmentID == cEnchantments::enchSweepingEdge)
+	{
+		return ItemCategory::IsSword(m_ItemType);
+	}
+	if (a_EnchantmentID == cEnchantments::enchMending)
+	{
+		return IsDamageable();
+	}
+	if (a_EnchantmentID == cEnchantments::enchCurseOfVanishing)
+	{
+		return IsEnchantable(m_ItemType, true) || IsDamageable();
+	}
+
 	// The organization here is based on the summary at:
 	// https://minecraft.wiki/w/Enchanting
 	// as of July 2017 (Minecraft 1.12).

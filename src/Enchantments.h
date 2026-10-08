@@ -46,7 +46,6 @@ public:
 
 	enum eEnchantment
 	{
-		// Currently missing: Frost walker, curse of binding, sweeping edge, mending, and curse of vanishing.
 		enchProtection           = 0,
 		enchFireProtection       = 1,
 		enchFeatherFalling       = 2,
@@ -56,6 +55,9 @@ public:
 		enchAquaAffinity         = 6,
 		enchThorns               = 7,
 		enchDepthStrider         = 8,
+		enchFrostWalker          = 9,
+		enchCurseOfBinding       = 10,
+		enchSweepingEdge         = 11,
 		enchSharpness            = 16,
 		enchSmite                = 17,
 		enchBaneOfArthropods     = 18,
@@ -72,6 +74,8 @@ public:
 		enchInfinity             = 51,
 		enchLuckOfTheSea         = 61,
 		enchLure                 = 62,
+		enchMending              = 70,
+		enchCurseOfVanishing     = 71,
 	} ;
 
 	/** Creates an empty enchantments container */

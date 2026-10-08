@@ -180,6 +180,9 @@ unsigned int cEnchantments::GetLevelCap(int a_EnchantmentID)
 		case enchAquaAffinity:         return 1;
 		case enchThorns:               return 3;
 		case enchDepthStrider:         return 3;
+		case enchFrostWalker:          return 2;
+		case enchCurseOfBinding:       return 1;
+		case enchSweepingEdge:         return 3;
 		case enchSharpness:            return 5;
 		case enchSmite:                return 5;
 		case enchBaneOfArthropods:     return 5;
@@ -196,6 +199,8 @@ unsigned int cEnchantments::GetLevelCap(int a_EnchantmentID)
 		case enchInfinity:             return 1;
 		case enchLuckOfTheSea:         return 3;
 		case enchLure:                 return 3;
+		case enchMending:              return 1;
+		case enchCurseOfVanishing:     return 1;
 	}
 	LOGWARNING("Unknown enchantment ID %d", a_EnchantmentID);
 	return 0;
@@ -220,6 +225,9 @@ int cEnchantments::GetXPCostMultiplier(int a_EnchantmentID, bool FromBook)
 			case enchAquaAffinity:         return 2;
 			case enchThorns:               return 4;
 			case enchDepthStrider:         return 2;
+			case enchFrostWalker:          return 2;
+			case enchCurseOfBinding:       return 4;
+			case enchSweepingEdge:         return 2;
 			case enchSharpness:            return 1;
 			case enchSmite:                return 1;
 			case enchBaneOfArthropods:     return 1;
@@ -236,6 +244,8 @@ int cEnchantments::GetXPCostMultiplier(int a_EnchantmentID, bool FromBook)
 			case enchInfinity:             return 4;
 			case enchLuckOfTheSea:         return 2;
 			case enchLure:                 return 2;
+			case enchMending:              return 2;
+			case enchCurseOfVanishing:     return 4;
 		}
 	}
 	else  // Without book
@@ -251,6 +261,9 @@ int cEnchantments::GetXPCostMultiplier(int a_EnchantmentID, bool FromBook)
 			case enchAquaAffinity:         return 4;
 			case enchThorns:               return 8;
 			case enchDepthStrider:         return 4;
+			case enchFrostWalker:          return 4;
+			case enchCurseOfBinding:       return 8;
+			case enchSweepingEdge:         return 4;
 
 			case enchSharpness:            return 1;
 			case enchSmite:                return 2;
@@ -269,6 +282,8 @@ int cEnchantments::GetXPCostMultiplier(int a_EnchantmentID, bool FromBook)
 			case enchInfinity:             return 8;
 			case enchLuckOfTheSea:         return 4;
 			case enchLure:                 return 4;
+			case enchMending:              return 4;
+			case enchCurseOfVanishing:     return 8;
 		}
 	}
 	LOGWARNING("Unknown enchantment ID %d", a_EnchantmentID);
@@ -298,10 +313,10 @@ bool cEnchantments::CanAddEnchantment(int a_EnchantmentID) const
 		{ enchSharpness, enchSmite, enchBaneOfArthropods },
 
 		// Boots
-		// {enchDepthStrider, enchFrostWalker},
+		{ enchDepthStrider, enchFrostWalker },
 
 		// Bow
-		// {enchInfinity, enchMending}
+		{ enchInfinity, enchMending }
 	};
 
 	for (const auto & excl: IncompatibleEnchantments)
@@ -342,6 +357,9 @@ int cEnchantments::StringToEnchantmentID(const AString & a_EnchantmentName)
 		{ enchAquaAffinity,         "AquaAffinity" },
 		{ enchThorns,               "Thorns" },
 		{ enchDepthStrider,         "DepthStrider" },
+		{ enchFrostWalker,          "FrostWalker" },
+		{ enchCurseOfBinding,       "CurseOfBinding" },
+		{ enchSweepingEdge,         "SweepingEdge" },
 		{ enchSharpness,            "Sharpness" },
 		{ enchSmite,                "Smite" },
 		{ enchBaneOfArthropods,     "BaneOfArthropods" },
@@ -358,6 +376,8 @@ int cEnchantments::StringToEnchantmentID(const AString & a_EnchantmentName)
 		{ enchInfinity,             "Infinity" },
 		{ enchLuckOfTheSea,         "LuckOfTheSea" },
 		{ enchLure,                 "Lure" },
+		{ enchMending,              "Mending" },
+		{ enchCurseOfVanishing,     "CurseOfVanishing" },
 	} ;
 
 	// First try to parse as a number:
@@ -490,6 +510,20 @@ void cEnchantments::AddItemEnchantmentWeights(cWeightedEnchantments & a_Enchantm
 		else if ((a_EnchantmentLevel >= 15) && (a_EnchantmentLevel <= 65))
 		{
 			AddEnchantmentWeightToVector(a_Enchantments, 2, enchLooting, 1);
+		}
+
+		// Sweeping Edge
+		if ((a_EnchantmentLevel >= 23) && (a_EnchantmentLevel <= 38))
+		{
+			AddEnchantmentWeightToVector(a_Enchantments, 2, enchSweepingEdge, 3);
+		}
+		else if ((a_EnchantmentLevel >= 14) && (a_EnchantmentLevel <= 29))
+		{
+			AddEnchantmentWeightToVector(a_Enchantments, 2, enchSweepingEdge, 2);
+		}
+		else if ((a_EnchantmentLevel >= 5) && (a_EnchantmentLevel <= 20))
+		{
+			AddEnchantmentWeightToVector(a_Enchantments, 2, enchSweepingEdge, 1);
 		}
 	}
 
@@ -679,6 +713,7 @@ void cEnchantments::AddItemEnchantmentWeights(cWeightedEnchantments & a_Enchantm
 			{
 				AddEnchantmentWeightToVector(a_Enchantments, 2, enchDepthStrider, 1);
 			}
+
 		}
 	}
 

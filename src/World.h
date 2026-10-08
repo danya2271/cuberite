@@ -269,6 +269,9 @@ public:
 	/** Calls the callback for each entity in the entire world; returns true if all entities processed, false if the callback aborted by returning true */
 	bool ForEachEntity(cEntityCallback a_Callback);  // Exported in ManualBindings.cpp
 
+	/** Calls the callback for each entity waiting to be added to the world; returns true if all entities processed, false if the callback aborted by returning true */
+	bool ForEachPendingEntity(cEntityCallback a_Callback);
+
 	/** Calls the callback for each entity in the specified chunk; returns true if all entities processed, false if the callback aborted by returning true */
 	bool ForEachEntityInChunk(int a_ChunkX, int a_ChunkZ, cEntityCallback a_Callback);  // Exported in ManualBindings.cpp
 

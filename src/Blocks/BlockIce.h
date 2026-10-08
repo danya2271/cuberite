@@ -37,6 +37,20 @@ private:
 		const Vector3i a_RelPos
 	) const override
 	{
+		if (m_BlockType == E_BLOCK_FROSTED_ICE)
+		{
+			const auto Meta = a_Chunk.GetMeta(a_RelPos);
+			if ((Meta >= 3) || GetRandomProvider().RandBool(0.2))
+			{
+				a_Chunk.SetBlock(a_RelPos, E_BLOCK_STATIONARY_WATER, 0);
+			}
+			else
+			{
+				a_Chunk.SetBlock(a_RelPos, E_BLOCK_FROSTED_ICE, Meta + 1);
+			}
+			return;
+		}
+
 		// Disappears instantly in nether:
 		if (a_WorldInterface.GetDimension() == dimNether)
 		{

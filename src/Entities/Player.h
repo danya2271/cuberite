@@ -117,6 +117,9 @@ public:
 	/** Gets the current experience */
 	inline int GetCurrentXp(void) { return m_CurrentXp; }
 
+	/** Repairs damaged mending items and returns the experience that remains. */
+	int RepairItemsWithMending(int a_Xp);
+
 	/** Gets the current level - XpLevel */
 	int GetXpLevel(void) const;
 
@@ -809,6 +812,7 @@ private:
 	void AddKnownRecipe(UInt32 RecipeId);
 
 	void TickFreezeCode();
+	void TickFrostWalker();
 
 	/** (Re)loads the rank and permissions from the cRankManager.
 	Loads the m_Rank, m_Permissions, m_MsgPrefix, m_MsgSuffix and m_MsgNameColorCode members. */

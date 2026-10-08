@@ -2495,6 +2495,23 @@ bool cWorld::ForEachEntity(cEntityCallback a_Callback)
 
 
 
+bool cWorld::ForEachPendingEntity(cEntityCallback a_Callback)
+{
+	cCSLock Lock(m_CSEntitiesToAdd);
+	for (const auto & Item: m_EntitiesToAdd)
+	{
+		if (a_Callback(*Item.first))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+
+
+
+
 bool cWorld::ForEachEntityInChunk(int a_ChunkX, int a_ChunkZ, cEntityCallback a_Callback)
 {
 	return m_ChunkMap.ForEachEntityInChunk(a_ChunkX, a_ChunkZ, a_Callback);
@@ -2783,6 +2800,7 @@ void cWorld::SaveAllChunks(void)
 {
 	if (IsSavingEnabled())
 	{
+		TickQueuedEntityAdditions();
 		m_LastSave = m_WorldAge;
 		m_ChunkMap.SaveAllChunks();
 	}
