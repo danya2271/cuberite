@@ -675,7 +675,7 @@ void cChunk::SpawnMobs(cMobSpawner & a_MobSpawner)
 			continue;
 		}
 
-		auto newMob = a_MobSpawner.TryToSpawnHere(this, Try, GetBiomeAt(Try.x, Try.z), MaxNbOfSuccess);
+		auto newMob = a_MobSpawner.TryToSpawnHere(Chunk, Try, Chunk->GetBiomeAt(Try.x, Try.z), MaxNbOfSuccess);
 		if (newMob == nullptr)
 		{
 			continue;
