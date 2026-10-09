@@ -187,6 +187,17 @@ void cEnderman::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 	{
 		EventLosePlayer();
 		TakeDamage(dtEnvironment, nullptr, 1, 0);
-		// TODO teleport to a safe location
+		if (GetHealth() > 0)
+		{
+			Vector3d Destination;
+			if (FindTeleportDestination(*m_World, 3, 64, Destination, GetPosition().Floor(), 32))
+			{
+				const auto OldPosition = GetPosition();
+				SetSpeed(0, 0, 0);
+				TeleportToCoords(Destination.x, Destination.y, Destination.z);
+				m_World->BroadcastSoundEffect("entity.endermen.teleport", OldPosition, 1, 1);
+				m_World->BroadcastSoundEffect("entity.endermen.teleport", Destination, 1, 1);
+			}
+		}
 	}
 }

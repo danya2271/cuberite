@@ -38,6 +38,76 @@
 namespace
 {
 
+bool FindBedRespawnPosition(cWorld & a_World, Vector3i a_BedPosition, Vector3d & a_RespawnPosition)
+{
+	BLOCKTYPE Type;
+	NIBBLETYPE Meta;
+	if (!a_World.GetBlockTypeMeta(a_BedPosition, Type, Meta) || (Type != E_BLOCK_BED))
+	{
+		return false;
+	}
+
+	Vector3i Direction;
+	switch (Meta & 0x03)
+	{
+		case 0: Direction = {0, 0, 1}; break;
+		case 1: Direction = {-1, 0, 0}; break;
+		case 2: Direction = {0, 0, -1}; break;
+		case 3: Direction = {1, 0, 0}; break;
+		default: return false;
+	}
+
+	const auto HeadPosition = ((Meta & 0x08) != 0) ? a_BedPosition : a_BedPosition + Direction;
+	const auto FootPosition = HeadPosition - Direction;
+	if (
+		!a_World.GetBlockTypeMeta(HeadPosition, Type, Meta) || (Type != E_BLOCK_BED) ||
+		!a_World.GetBlockTypeMeta(FootPosition, Type, Meta) || (Type != E_BLOCK_BED)
+	)
+	{
+		return false;
+	}
+
+	const std::array<Vector3i, 8> Offsets =
+	{
+		{
+			{-1, 0, -1}, { 0, 0, -1}, { 1, 0, -1},
+			{-1, 0,  0},              { 1, 0,  0},
+			{-1, 0,  1}, { 0, 0,  1}, { 1, 0,  1}
+		}
+	};
+
+	for (const auto & BedPart : {HeadPosition, FootPosition})
+	{
+		for (const auto & Offset : Offsets)
+		{
+			const auto Candidate = BedPart + Offset;
+			if (
+				!cChunkDef::IsValidHeight(Candidate.addedY(-1)) ||
+				!cChunkDef::IsValidHeight(Candidate) ||
+				!cChunkDef::IsValidHeight(Candidate.addedY(1)) ||
+				!cBlockInfo::IsSolid(a_World.GetBlock(Candidate.addedY(-1)))
+			)
+			{
+				continue;
+			}
+
+			const auto Space = a_World.GetBlock(Candidate);
+			const auto SpaceAbove = a_World.GetBlock(Candidate.addedY(1));
+			if (
+				cBlockInfo::IsSolid(Space) || IsBlockLiquid(Space) || (Space == E_BLOCK_BED) ||
+				cBlockInfo::IsSolid(SpaceAbove) || IsBlockLiquid(SpaceAbove) || (SpaceAbove == E_BLOCK_BED)
+			)
+			{
+				continue;
+			}
+
+			a_RespawnPosition = {Candidate.x + 0.5, static_cast<double>(Candidate.y), Candidate.z + 0.5};
+			return true;
+		}
+	}
+	return false;
+}
+
 /** Returns the folder for the player data based on the UUID given.
 This can be used both for online and offline UUIDs. */
 AString GetUUIDFolderName(const cUUID & a_Uuid)
@@ -1029,30 +1099,28 @@ void cPlayer::Respawn(void)
 	// Disable flying:
 	SetFlying(false);
 
+	Vector3d RespawnPosition(m_RespawnPosition);
 	if (!m_IsRespawnPointForced)
 	{
-		// Check if the bed is still present:
-		if (GetRespawnWorld()->GetBlock(m_RespawnPosition) != E_BLOCK_BED)
+		if (!FindBedRespawnPosition(*GetRespawnWorld(), m_RespawnPosition, RespawnPosition))
 		{
 			const auto & DefaultWorld = *cRoot::Get()->GetDefaultWorld();
 
-			// If not, reset spawn to default and inform:
 			SetRespawnPosition(Vector3i(DefaultWorld.GetSpawnX(), DefaultWorld.GetSpawnY(), DefaultWorld.GetSpawnZ()), DefaultWorld);
 			SendAboveActionBarMessage("Your home bed was missing or obstructed");
+			RespawnPosition = Vector3d(DefaultWorld.GetSpawnX() + 0.5, DefaultWorld.GetSpawnY(), DefaultWorld.GetSpawnZ() + 0.5);
 		}
-
-		// TODO: bed obstruction check here
 	}
 
 
 	if (const auto RespawnWorld = GetRespawnWorld(); m_World != RespawnWorld)
 	{
-		MoveToWorld(*RespawnWorld, m_RespawnPosition, false, false);
+		MoveToWorld(*RespawnWorld, RespawnPosition, false, false);
 	}
 	else
 	{
 		m_ClientHandle->SendRespawn(m_World->GetDimension(), true);
-		TeleportToCoords(m_RespawnPosition.x, m_RespawnPosition.y, m_RespawnPosition.z);
+		TeleportToCoords(RespawnPosition.x, RespawnPosition.y, RespawnPosition.z);
 	}
 
 	// The Notchian client enters a weird glitched state when trying to "resurrect" dead players
