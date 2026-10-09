@@ -27,26 +27,33 @@ private:
 	) const override
 	{
 		UNUSED(a_WorldInterface);
-		const auto AbovePos = a_RelPos.addedY(1);
-		if (cChunkDef::IsValidHeight(AbovePos))
+		if (!a_Chunk.IsLightValid())
 		{
-			const auto Above = a_Chunk.GetBlock(AbovePos);
-			if ((Above != E_BLOCK_SNOW) && (!cBlockInfo::IsTransparent(Above) || IsBlockWater(Above)))
-			{
-				a_ChunkInterface.SetBlock(a_Chunk.RelativeToAbsolute(a_RelPos), E_BLOCK_DIRT, E_META_DIRT_NORMAL);
-				return;
-			}
+			a_Chunk.GetWorld()->QueueLightChunk(a_Chunk.GetPosX(), a_Chunk.GetPosZ());
+			return;
 		}
 
-		const auto Light = cChunkDef::IsValidHeight(AbovePos) ?
-			std::max(a_Chunk.GetBlockLight(AbovePos), a_Chunk.GetSkyLightAltered(AbovePos)) : 15;
+		const auto AbovePos = a_RelPos.addedY(1);
+		if (!cChunkDef::IsValidHeight(AbovePos))
+		{
+			return;
+		}
+
+		const auto Above = a_Chunk.GetBlock(AbovePos);
+		const auto Light = std::max(a_Chunk.GetBlockLight(AbovePos), a_Chunk.GetSkyLightAltered(AbovePos));
+		if ((Light < 4) && (cBlockInfo::GetSpreadLightFalloff(Above) > 2))
+		{
+			a_ChunkInterface.SetBlock(a_Chunk.RelativeToAbsolute(a_RelPos), E_BLOCK_DIRT, E_META_DIRT_NORMAL);
+			return;
+		}
+
 		if (Light < 9)
 		{
 			return;
 		}
 
 		auto & Random = GetRandomProvider();
-		for (int Attempt = 0; Attempt < 2; ++Attempt)
+		for (int Attempt = 0; Attempt < 4; ++Attempt)
 		{
 			const auto Target = a_RelPos + Vector3i(Random.RandInt(-1, 1), Random.RandInt(-3, 1), Random.RandInt(-1, 1));
 			TrySpreadTo(a_Chunk, a_PluginInterface, Target);
@@ -80,11 +87,9 @@ private:
 		{
 			return;
 		}
-		const auto Above = Chunk->GetBlock(AbovePos);
 		const auto Light = std::max(Chunk->GetBlockLight(AbovePos), Chunk->GetSkyLightAltered(AbovePos));
 		if (
-			(Light < 9) || !cBlockInfo::IsTransparent(Above) ||
-			IsBlockLava(Above) || IsBlockWaterOrIce(Above)
+			(Light < 4) || (cBlockInfo::GetSpreadLightFalloff(Chunk->GetBlock(AbovePos)) > 2)
 		)
 		{
 			return;
@@ -99,6 +104,10 @@ private:
 
 	virtual cItems ConvertToPickups(const NIBBLETYPE a_BlockMeta, const cItem * const a_Tool) const override
 	{
+		if (ToolHasSilkTouch(a_Tool))
+		{
+			return cItem(m_BlockType, 1, a_BlockMeta);
+		}
 		return cItem(E_BLOCK_DIRT, 1, 0);
 	}
 

@@ -30,17 +30,22 @@ private:
 	) const override
 	{
 		UNUSED(a_WorldInterface);
-		UNUSED(a_ChunkInterface);
 
-		const auto AbovePos = a_RelPos.addedY(1);
-		if (cChunkDef::IsValidHeight(AbovePos))
+		if (!a_Chunk.IsLightValid())
 		{
-			const auto Light = std::max(a_Chunk.GetBlockLight(AbovePos), a_Chunk.GetSkyLightAltered(AbovePos));
-			if (Light > 12)
-			{
-				a_Chunk.FastSetBlock(a_RelPos, E_BLOCK_AIR, 0);
-				return;
-			}
+			a_Chunk.GetWorld()->QueueLightChunk(a_Chunk.GetPosX(), a_Chunk.GetPosZ());
+			return;
+		}
+
+		if (!CanBeAt(a_Chunk, a_RelPos, a_Chunk.GetMeta(a_RelPos)))
+		{
+			a_ChunkInterface.DropBlockAsPickups(a_Chunk.RelativeToAbsolute(a_RelPos));
+			return;
+		}
+
+		if (GetRandomProvider().RandInt(24) != 0)
+		{
+			return;
 		}
 
 		int Count = 0;
@@ -56,25 +61,35 @@ private:
 					{
 						continue;
 					}
-					if ((Block == E_BLOCK_BROWN_MUSHROOM) || (Block == E_BLOCK_RED_MUSHROOM))
+					if (Block == m_BlockType)
 					{
 						++Count;
 					}
 				}
 			}
 		}
-		if ((Count >= 5) || (GetRandomProvider().RandInt(24) != 0))
+		if (Count >= 5)
 		{
 			return;
 		}
 
+		auto Target = a_RelPos + Vector3i(
+			GetRandomProvider().RandInt(-1, 1),
+			GetRandomProvider().RandInt(0, 1) - GetRandomProvider().RandInt(0, 1),
+			GetRandomProvider().RandInt(-1, 1)
+		);
 		for (int Attempt = 0; Attempt < 4; ++Attempt)
 		{
-			const auto Target = a_RelPos + Vector3i(GetRandomProvider().RandInt(-4, 4), GetRandomProvider().RandInt(-1, 1), GetRandomProvider().RandInt(-4, 4));
 			if (TrySpreadTo(a_Chunk, a_PluginInterface, Target))
 			{
 				return;
 			}
+
+			Target += Vector3i(
+				GetRandomProvider().RandInt(-1, 1),
+				GetRandomProvider().RandInt(0, 1) - GetRandomProvider().RandInt(0, 1),
+				GetRandomProvider().RandInt(-1, 1)
+			);
 		}
 	}
 
@@ -97,13 +112,12 @@ private:
 			return false;
 		}
 
-		const auto AbovePos = RelPos.addedY(1);
-		if (!cChunkDef::IsValidHeight(AbovePos))
+		if (!Chunk->IsLightValid())
 		{
 			return false;
 		}
-		const auto Light = std::max(Chunk->GetBlockLight(RelPos), Chunk->GetSkyLightAltered(RelPos));
-		if ((Light > 12) || !CanGrowOn(Chunk->GetBlock(AbovePos)))
+
+		if ((Chunk->GetBlock(RelPos) != E_BLOCK_AIR) || !CanBeAt(*Chunk, RelPos, 0))
 		{
 			return false;
 		}
@@ -119,7 +133,7 @@ private:
 
 	static bool CanGrowOn(const BLOCKTYPE a_Block)
 	{
-		return cBlockInfo::IsSolid(a_Block) && !cBlockInfo::IsTransparent(a_Block);
+		return cBlockInfo::FullyOccupiesVoxel(a_Block);
 	}
 
 	virtual bool CanBeAt(const cChunk & a_Chunk, const Vector3i a_Position, const NIBBLETYPE a_Meta) const override
@@ -130,24 +144,13 @@ private:
 			return false;
 		}
 
-		const auto AbovePos = a_Position.addedY(1);
-		if (cChunkDef::IsValidHeight(AbovePos))
+		const auto Base = a_Chunk.GetBlock(BasePos);
+		if ((Base == E_BLOCK_MYCELIUM) || ((Base == E_BLOCK_DIRT) && (a_Chunk.GetMeta(BasePos) == E_META_DIRT_PODZOL)))
 		{
-			const auto Light = std::max(a_Chunk.GetBlockLight(AbovePos), a_Chunk.GetSkyLightAltered(AbovePos));
-			if (Light > 12)
-			{
-				return false;
-			}
+			return true;
 		}
 
-		switch (a_Chunk.GetBlock(BasePos))
-		{
-			case E_BLOCK_AIR:
-			{
-				return false;
-			}
-		}
-		return cBlockInfo::IsSolid(a_Chunk.GetBlock(BasePos)) && !cBlockInfo::IsTransparent(a_Chunk.GetBlock(BasePos));
+		return (std::max(a_Chunk.GetBlockLight(a_Position), a_Chunk.GetSkyLightAltered(a_Position)) < 13) && CanGrowOn(Base);
 	}
 
 

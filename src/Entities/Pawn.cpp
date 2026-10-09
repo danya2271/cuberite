@@ -666,15 +666,23 @@ bool cPawn::FindTeleportDestination(cWorld & a_World, const int a_HeightRequired
 		const int DestZ = Random.RandInt(a_MinBoxCorner.z, a_MaxBoxCorner.z);
 
 		// Seek downwards from initial destination until we find a solid block or go into the void
-		BLOCKTYPE DestBlock = a_World.GetBlock({DestX, DestY, DestZ});
-		while ((DestY >= 0) && !cBlockInfo::IsSolid(DestBlock))
+		BLOCKTYPE DestBlock;
+		while (cChunkDef::IsValidHeight({DestX, DestY, DestZ}))
 		{
-			DestBlock = a_World.GetBlock({DestX, DestY, DestZ});
+			NIBBLETYPE DestMeta;
+			if (!a_World.GetBlockTypeMeta({DestX, DestY, DestZ}, DestBlock, DestMeta))
+			{
+				break;
+			}
+			if (cBlockInfo::IsSolid(DestBlock))
+			{
+				break;
+			}
 			DestY--;
 		}
 
 		// Couldn't find a solid block so move to next attempt
-		if (DestY < 0)
+		if (!cChunkDef::IsValidHeight({DestX, DestY, DestZ}))
 		{
 			continue;
 		}
@@ -683,7 +691,20 @@ bool cPawn::FindTeleportDestination(cWorld & a_World, const int a_HeightRequired
 		bool Success = true;
 		for (int j = 1; j <= a_HeightRequired; j++)
 		{
-			BLOCKTYPE TestBlock = a_World.GetBlock({DestX, DestY + j, DestZ});
+			const auto TestPos = Vector3i(DestX, DestY + j, DestZ);
+			if (!cChunkDef::IsValidHeight(TestPos))
+			{
+				Success = false;
+				break;
+			}
+
+			BLOCKTYPE TestBlock;
+			NIBBLETYPE TestMeta;
+			if (!a_World.GetBlockTypeMeta(TestPos, TestBlock, TestMeta))
+			{
+				Success = false;
+				break;
+			}
 			if (cBlockInfo::IsSolid(TestBlock) || IsBlockLiquid(TestBlock))
 			{
 				Success = false;

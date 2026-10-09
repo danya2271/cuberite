@@ -46,9 +46,11 @@ bool FindBedRespawnPosition(cWorld & a_World, Vector3i a_BedPosition, Vector3d &
 	{
 		return false;
 	}
+	const auto BedDirection = Meta & 0x03;
+	const auto BedIsHead = (Meta & 0x08) != 0;
 
 	Vector3i Direction;
-	switch (Meta & 0x03)
+	switch (BedDirection)
 	{
 		case 0: Direction = {0, 0, 1}; break;
 		case 1: Direction = {-1, 0, 0}; break;
@@ -57,11 +59,13 @@ bool FindBedRespawnPosition(cWorld & a_World, Vector3i a_BedPosition, Vector3d &
 		default: return false;
 	}
 
-	const auto HeadPosition = ((Meta & 0x08) != 0) ? a_BedPosition : a_BedPosition + Direction;
+	const auto HeadPosition = BedIsHead ? a_BedPosition : a_BedPosition + Direction;
 	const auto FootPosition = HeadPosition - Direction;
 	if (
 		!a_World.GetBlockTypeMeta(HeadPosition, Type, Meta) || (Type != E_BLOCK_BED) ||
-		!a_World.GetBlockTypeMeta(FootPosition, Type, Meta) || (Type != E_BLOCK_BED)
+		((Meta & 0x03) != BedDirection) || ((Meta & 0x08) == 0) ||
+		!a_World.GetBlockTypeMeta(FootPosition, Type, Meta) || (Type != E_BLOCK_BED) ||
+		((Meta & 0x03) != BedDirection) || ((Meta & 0x08) != 0)
 	)
 	{
 		return false;
@@ -81,18 +85,25 @@ bool FindBedRespawnPosition(cWorld & a_World, Vector3i a_BedPosition, Vector3d &
 		for (const auto & Offset : Offsets)
 		{
 			const auto Candidate = BedPart + Offset;
+			BLOCKTYPE Floor;
+			NIBBLETYPE FloorMeta;
+			BLOCKTYPE Space;
+			NIBBLETYPE SpaceMeta;
+			BLOCKTYPE SpaceAbove;
+			NIBBLETYPE SpaceAboveMeta;
 			if (
 				!cChunkDef::IsValidHeight(Candidate.addedY(-1)) ||
 				!cChunkDef::IsValidHeight(Candidate) ||
 				!cChunkDef::IsValidHeight(Candidate.addedY(1)) ||
-				!cBlockInfo::IsSolid(a_World.GetBlock(Candidate.addedY(-1)))
+				!a_World.GetBlockTypeMeta(Candidate.addedY(-1), Floor, FloorMeta) ||
+				!cBlockInfo::FullyOccupiesVoxel(Floor) ||
+				!a_World.GetBlockTypeMeta(Candidate, Space, SpaceMeta) ||
+				!a_World.GetBlockTypeMeta(Candidate.addedY(1), SpaceAbove, SpaceAboveMeta)
 			)
 			{
 				continue;
 			}
 
-			const auto Space = a_World.GetBlock(Candidate);
-			const auto SpaceAbove = a_World.GetBlock(Candidate.addedY(1));
 			if (
 				cBlockInfo::IsSolid(Space) || IsBlockLiquid(Space) || (Space == E_BLOCK_BED) ||
 				cBlockInfo::IsSolid(SpaceAbove) || IsBlockLiquid(SpaceAbove) || (SpaceAbove == E_BLOCK_BED)
