@@ -73,7 +73,7 @@ bool cWolf::DoTakeDamage(TakeDamageInfo & a_TDI)
 
 void cWolf::NotifyAlliesOfFight(cPawn * a_Opponent)
 {
-	if (GetOwnerName() == "")
+	if (GetOwnerUUID().IsNil())
 	{
 		return;
 	}
@@ -166,7 +166,7 @@ void cWolf::ReceiveNearbyFightInfo(const cUUID & a_PlayerID, cPawn * a_Opponent,
 void cWolf::OnRightClicked(cPlayer & a_Player)
 {
 	cMonster::OnRightClicked(a_Player);
-	const cItem & EquippedItem = a_Player.GetEquippedItem();
+	const cItem & EquippedItem = a_Player.GetItemInUse();
 	const int EquippedItemType = EquippedItem.m_ItemType;
 
 	if (!IsTame() && !IsAngry())
@@ -176,7 +176,7 @@ void cWolf::OnRightClicked(cPlayer & a_Player)
 		{
 			if (!a_Player.IsGameModeCreative())
 			{
-				a_Player.GetInventory().RemoveOneEquippedItem();
+				a_Player.RemoveOneItemInUse();
 			}
 
 			if (GetRandomProvider().RandBool(0.125))
@@ -220,7 +220,7 @@ void cWolf::OnRightClicked(cPlayer & a_Player)
 					Heal(EquippedItem.GetHandler().GetFoodInfo(&EquippedItem).FoodLevel);
 					if (!a_Player.IsGameModeCreative())
 					{
-						a_Player.GetInventory().RemoveOneEquippedItem();
+						a_Player.RemoveOneItemInUse();
 					}
 				}
 				else if (a_Player.GetUUID() == m_OwnerUUID)  // Is the player the owner of the dog?
@@ -239,7 +239,7 @@ void cWolf::OnRightClicked(cPlayer & a_Player)
 					SetCollarColor(EquippedItem.m_ItemDamage);
 					if (!a_Player.IsGameModeCreative())
 					{
-						a_Player.GetInventory().RemoveOneEquippedItem();
+						a_Player.RemoveOneItemInUse();
 					}
 				}
 				break;
@@ -269,7 +269,7 @@ void cWolf::OnRightClicked(cPlayer & a_Player)
 			if (!a_Player.IsGameModeCreative())
 			{
 				// The mob was spawned, "use" the item:
-				a_Player.GetInventory().RemoveOneEquippedItem();
+				a_Player.RemoveOneItemInUse();
 			}
 		}
 	}
@@ -306,41 +306,44 @@ void cWolf::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 	{
 		m_World->DoWithNearestPlayer(GetPosition(), static_cast<float>(m_SightDistance), [&](cPlayer & a_Player) -> bool
 		{
-			switch (a_Player.GetEquippedItem().m_ItemType)
+			const auto IsBeggingItem = [](short a_ItemType)
 			{
-				case E_ITEM_BONE:
-				case E_ITEM_RAW_BEEF:
-				case E_ITEM_STEAK:
-				case E_ITEM_RAW_CHICKEN:
-				case E_ITEM_COOKED_CHICKEN:
-				case E_ITEM_ROTTEN_FLESH:
-				case E_ITEM_RAW_PORKCHOP:
-				case E_ITEM_COOKED_PORKCHOP:
+				switch (a_ItemType)
 				{
-					if (!IsBegging())
-					{
-						SetIsBegging(true);
-						m_World->BroadcastEntityMetadata(*this);
-					}
-
-					m_FinalDestination = a_Player.GetPosition();  // So that we will look at a player holding food
-
-					// Don't move to the player if the wolf is sitting.
-					if (!IsSitting())
-					{
-						MoveToPosition(a_Player.GetPosition());
-					}
-
-					break;
+					case E_ITEM_BONE:
+					case E_ITEM_RAW_BEEF:
+					case E_ITEM_STEAK:
+					case E_ITEM_RAW_CHICKEN:
+					case E_ITEM_COOKED_CHICKEN:
+					case E_ITEM_ROTTEN_FLESH:
+					case E_ITEM_RAW_PORKCHOP:
+					case E_ITEM_COOKED_PORKCHOP:
+						return true;
+					default:
+						return false;
 				}
-				default:
+			};
+
+			if (IsBeggingItem(a_Player.GetItemInUse().m_ItemType) || IsBeggingItem(a_Player.GetInventory().GetShieldSlot().m_ItemType))
+			{
+				if (!IsBegging())
 				{
-					if (IsBegging())
-					{
-						SetIsBegging(false);
-						m_World->BroadcastEntityMetadata(*this);
-					}
+					SetIsBegging(true);
+					m_World->BroadcastEntityMetadata(*this);
 				}
+
+				m_FinalDestination = a_Player.GetPosition();  // So that we will look at a player holding food
+
+				// Don't move to the player if the wolf is sitting.
+				if (!IsSitting())
+				{
+					MoveToPosition(a_Player.GetPosition());
+				}
+			}
+			else if (IsBegging())
+			{
+				SetIsBegging(false);
+				m_World->BroadcastEntityMetadata(*this);
 			}
 
 			return true;

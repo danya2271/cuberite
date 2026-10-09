@@ -159,7 +159,11 @@ public:
 	/** Sets equiped item to the a_SlotNum slot number */
 	void          SetEquippedSlotNum(int a_SlotNum);
 	/** Returns slot number of equiped item */
-	int           GetEquippedSlotNum(void) { return m_EquippedSlotNum; }
+	int           GetEquippedSlotNum(void) const { return m_EquippedSlotNum; }
+	/** Sets the inventory slot currently used by an item interaction */
+	void          SetActiveSlot(int a_SlotNum) { m_ActiveSlot = a_SlotNum; }
+	/** Returns the inventory slot currently used by an item interaction, or -1 */
+	int           GetActiveSlot(void) const { return m_ActiveSlot; }
 
 	/** Adds (or subtracts, if a_AddToCount is negative) to the count of items in the specified slot.
 	If the slot is empty, ignores the call.
@@ -192,6 +196,8 @@ public:
 	void SaveToJson(Json::Value & a_Value);
 	bool LoadFromJson(Json::Value & a_Value);
 
+	int ReplaceOneItem(int a_SlotNum, const cItem & a_Item, bool a_TryOtherSlots = true);
+
 protected:
 	bool AddToBar(cItem & a_Item, const int a_Offset, const int a_Size, bool * a_bChangedSlots, int a_Mode = 0);
 
@@ -201,6 +207,7 @@ protected:
 	cItemGrid m_ShieldSlots;
 
 	int m_EquippedSlotNum;
+	int m_ActiveSlot = -1;
 
 	cPlayer & m_Owner;
 

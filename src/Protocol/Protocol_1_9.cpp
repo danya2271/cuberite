@@ -1120,10 +1120,7 @@ void cProtocol_1_9_0::HandlePacketUseEntity(cByteBuffer & a_ByteBuffer)
 		{
 			HANDLE_READ(a_ByteBuffer, ReadVarInt, UInt32, Hand);
 
-			if (Hand == MAIN_HAND)  // TODO: implement handling of off-hand actions; ignore them for now to avoid processing actions twice
-			{
-				m_Client->HandleUseEntity(EntityID, false);
-			}
+			m_Client->HandleUseEntity(EntityID, false, Hand == MAIN_HAND);
 			break;
 		}
 		case 1:
@@ -1138,7 +1135,7 @@ void cProtocol_1_9_0::HandlePacketUseEntity(cByteBuffer & a_ByteBuffer)
 			HANDLE_READ(a_ByteBuffer, ReadBEFloat, float, TargetZ);
 			HANDLE_READ(a_ByteBuffer, ReadVarInt, UInt32, Hand);
 
-			// TODO: Do anything
+			m_Client->HandleUseEntity(EntityID, false, Hand == MAIN_HAND);
 			break;
 		}
 		default:

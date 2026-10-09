@@ -809,6 +809,15 @@ public:
 			mWriter.AddByte("CanPickUpLoot", (a_Monster->CanPickUpLoot())? 1 : 0);
 			mWriter.AddString("CustomName", a_Monster->GetCustomName());
 			mWriter.AddByte("CustomNameVisible", static_cast<Byte>(a_Monster->IsCustomNameAlwaysVisible()));
+			if (a_Monster->IsPlayerTamed() && !a_Monster->GetPlayerOwnerUUID().IsNil())
+			{
+				mWriter.AddByte("PlayerTamed", 1);
+				mWriter.AddString("PlayerOwnerUUID", a_Monster->GetPlayerOwnerUUID().ToShortString());
+				mWriter.AddByte("PlayerOwnerFollowing", a_Monster->IsFollowingPlayerOwner() ? 1 : 0);
+				mWriter.BeginList("PlayerOwnerContents", TAG_Compound);
+					AddItemGrid(a_Monster->GetPlayerOwnerContents());
+				mWriter.EndList();
+			}
 
 			// Mob was leashed
 			if (a_Monster->IsLeashed() || (a_Monster->GetLeashToPos() != nullptr))

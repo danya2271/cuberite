@@ -175,6 +175,9 @@ public:
 	/** Tames this hostile mob for the specified player. */
 	void TameByPlayer(cPlayer & a_Player);
 
+	/** Restores player taming state loaded from world storage. */
+	void RestorePlayerTamed(const cUUID & a_PlayerOwnerUUID, bool a_IsFollowingPlayerOwner);
+
 	/** Toggles following for a player-tamed mob. */
 	void TogglePlayerOwnerFollowing(void);
 

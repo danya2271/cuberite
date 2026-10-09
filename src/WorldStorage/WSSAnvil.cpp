@@ -2812,7 +2812,7 @@ void cWSSAnvil::LoadOcelotFromNBT(cEntityList & a_Entities, const cParsedNBT & a
 	}
 
 	auto OwnerInfo = LoadEntityOwner(a_NBT, a_TagIdx);
-	if (!OwnerInfo.first.empty() && !OwnerInfo.second.IsNil())
+	if (!OwnerInfo.second.IsNil())
 	{
 		Monster->SetOwner(OwnerInfo.first, OwnerInfo.second);
 		Monster->SetIsTame(true);
@@ -3424,7 +3424,7 @@ void cWSSAnvil::LoadWolfFromNBT(cEntityList & a_Entities, const cParsedNBT & a_N
 	}
 
 	auto OwnerInfo = LoadEntityOwner(a_NBT, a_TagIdx);
-	if (!OwnerInfo.first.empty() && !OwnerInfo.second.IsNil())
+	if (!OwnerInfo.second.IsNil())
 	{
 		Monster->SetOwner(OwnerInfo.first, OwnerInfo.second);
 		Monster->SetIsTame(true);
@@ -3624,12 +3624,12 @@ std::pair<AString, cUUID> cWSSAnvil::LoadEntityOwner(const cParsedNBT & a_NBT, i
 	AString OwnerName;
 	cUUID OwnerUUID;
 	int OwnerUUIDIdx = a_NBT.FindChildByName(a_TagIdx, "OwnerUUID");
-	if (OwnerUUIDIdx > 0)
+	if ((OwnerUUIDIdx > 0) && (a_NBT.GetType(OwnerUUIDIdx) == TAG_String))
 	{
 		OwnerUUID.FromString(a_NBT.GetString(OwnerUUIDIdx));
 	}
 	int OwnerIdx = a_NBT.FindChildByName(a_TagIdx, "Owner");
-	if (OwnerIdx > 0)
+	if ((OwnerIdx > 0) && (a_NBT.GetType(OwnerIdx) == TAG_String))
 	{
 		OwnerName = a_NBT.GetString(OwnerIdx);
 	}
@@ -3657,11 +3657,6 @@ std::pair<AString, cUUID> cWSSAnvil::LoadEntityOwner(const cParsedNBT & a_NBT, i
 	{
 		// The lookup is blocking, but we're running in a separate thread, so it's ok
 		OwnerName = cRoot::Get()->GetMojangAPI().GetPlayerNameFromUUID(OwnerUUID);
-		if (OwnerName.empty())
-		{
-			// Not a known player, un-tame the entity by bailing out
-			return {};
-		}
 	}
 
 	return { OwnerName, OwnerUUID };
@@ -3771,6 +3766,32 @@ bool cWSSAnvil::LoadMonsterBaseFromNBT(cMonster & a_Monster, const cParsedNBT & 
 	{
 		bool CustomNameVisible = (a_NBT.GetByte(CustomNameVisibleTag) == 1);
 		a_Monster.SetCustomNameAlwaysVisible(CustomNameVisible);
+	}
+
+	const int PlayerTamedTag = a_NBT.FindChildByName(a_TagIdx, "PlayerTamed");
+	const int PlayerOwnerUUIDTag = a_NBT.FindChildByName(a_TagIdx, "PlayerOwnerUUID");
+	if (
+		(PlayerTamedTag > 0) && (a_NBT.GetType(PlayerTamedTag) == TAG_Byte) && (a_NBT.GetByte(PlayerTamedTag) != 0) &&
+		(PlayerOwnerUUIDTag > 0) && (a_NBT.GetType(PlayerOwnerUUIDTag) == TAG_String)
+	)
+	{
+		cUUID PlayerOwnerUUID;
+		if (PlayerOwnerUUID.FromString(a_NBT.GetString(PlayerOwnerUUIDTag)) && !PlayerOwnerUUID.IsNil())
+		{
+			bool IsFollowingPlayerOwner = true;
+			const int FollowingTag = a_NBT.FindChildByName(a_TagIdx, "PlayerOwnerFollowing");
+			if ((FollowingTag > 0) && (a_NBT.GetType(FollowingTag) == TAG_Byte))
+			{
+				IsFollowingPlayerOwner = (a_NBT.GetByte(FollowingTag) != 0);
+			}
+			a_Monster.RestorePlayerTamed(PlayerOwnerUUID, IsFollowingPlayerOwner);
+
+			const int ContentsTag = a_NBT.FindChildByName(a_TagIdx, "PlayerOwnerContents");
+			if ((ContentsTag > 0) && (a_NBT.GetType(ContentsTag) == TAG_List) && (a_NBT.GetChildrenType(ContentsTag) == TAG_Compound))
+			{
+				LoadItemGridFromNBT(a_Monster.GetPlayerOwnerContents(), a_NBT, ContentsTag);
+			}
+		}
 	}
 
 	// Leashed to a knot

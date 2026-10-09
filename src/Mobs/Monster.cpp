@@ -750,13 +750,13 @@ void cMonster::OnRightClicked(cPlayer & a_Player)
 		return;
 	}
 
-	const cItem & EquippedItem = a_Player.GetEquippedItem();
+	const cItem & EquippedItem = a_Player.GetItemInUse();
 	if ((EquippedItem.m_ItemType == E_ITEM_NAME_TAG) && !EquippedItem.m_CustomName.empty())
 	{
 		SetCustomName(EquippedItem.m_CustomName);
 		if (!a_Player.IsGameModeCreative())
 		{
-			a_Player.GetInventory().RemoveOneEquippedItem();
+			a_Player.RemoveOneItemInUse();
 		}
 	}
 
@@ -775,7 +775,7 @@ void cMonster::OnRightClicked(cPlayer & a_Player)
 	{
 		if (!a_Player.IsGameModeCreative())
 		{
-			a_Player.GetInventory().RemoveOneEquippedItem();
+			a_Player.RemoveOneItemInUse();
 		}
 		LeashTo(a_Player);
 	}
@@ -787,16 +787,31 @@ void cMonster::OnRightClicked(cPlayer & a_Player)
 
 void cMonster::TameByPlayer(cPlayer & a_Player)
 {
+	RestorePlayerTamed(a_Player.GetUUID(), true);
+	SetCustomName("Pet of " + a_Player.GetName());
+	m_World->BroadcastEntityMetadata(*this);
+}
+
+
+
+
+
+void cMonster::RestorePlayerTamed(const cUUID & a_PlayerOwnerUUID, bool a_IsFollowingPlayerOwner)
+{
 	m_IsPlayerTamed = true;
-	m_IsFollowingPlayerOwner = true;
-	m_PlayerOwnerUUID = a_Player.GetUUID();
+	m_IsFollowingPlayerOwner = a_IsFollowingPlayerOwner;
+	m_PlayerOwnerUUID = a_PlayerOwnerUUID;
 	m_EMPersonality = PASSIVE;
 	m_CanBeLeashed = false;
 	SetTarget(nullptr);
 	m_EMState = IDLE;
 	m_TicksSinceLastDamaged = 100;
-	SetCustomName("Pet of " + a_Player.GetName());
-	m_World->BroadcastEntityMetadata(*this);
+	if (!m_IsFollowingPlayerOwner)
+	{
+		StopMovingToPosition();
+		SetSpeedX(0);
+		SetSpeedZ(0);
+	}
 }
 
 
@@ -1525,8 +1540,9 @@ void cMonster::LoveTick(void)
 					return false;
 				}
 
-				const cItem & EquippedItem = a_Player.GetEquippedItem();
-				if (!FollowedItems.ContainsType(EquippedItem))
+				const cItem & MainHand = a_Player.GetItemInUse();
+				const cItem & OffHand = a_Player.GetInventory().GetShieldSlot();
+				if (!FollowedItems.ContainsType(MainHand) && !FollowedItems.ContainsType(OffHand))
 				{
 					return false;
 				}
@@ -1605,7 +1621,7 @@ void cMonster::LoveTick(void)
 void cMonster::RightClickFeed(cPlayer & a_Player)
 {
 
-	const cItem & EquippedItem = a_Player.GetEquippedItem();
+	const cItem & EquippedItem = a_Player.GetItemInUse();
 
 	// If a player holding breeding items right-clicked me, go into love mode
 	if ((m_LoveCooldown == 0) && !IsInLove() && !IsBaby())
@@ -1616,7 +1632,7 @@ void cMonster::RightClickFeed(cPlayer & a_Player)
 		{
 			if (!a_Player.IsGameModeCreative())
 			{
-				a_Player.GetInventory().RemoveOneEquippedItem();
+				a_Player.RemoveOneItemInUse();
 			}
 			m_LoveTimer = TPS * 30;  // half a minute
 			m_World->BroadcastEntityAnimation(*this, EntityAnimation::AnimalFallsInLove);
@@ -1634,7 +1650,7 @@ void cMonster::RightClickFeed(cPlayer & a_Player)
 			if (!a_Player.IsGameModeCreative())
 			{
 				// The mob was spawned, "use" the item:
-				a_Player.GetInventory().RemoveOneEquippedItem();
+				a_Player.RemoveOneItemInUse();
 			}
 		}
 	}

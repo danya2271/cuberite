@@ -52,7 +52,7 @@ void cOcelot::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 			{
 				cItems Items;
 				GetBreedingItems(Items);
-				if (Items.ContainsType(a_Player.GetEquippedItem().m_ItemType))
+				if (Items.ContainsType(a_Player.GetEquippedItem().m_ItemType) || Items.ContainsType(a_Player.GetInventory().GetShieldSlot().m_ItemType))
 				{
 					if (!IsBegging())
 					{

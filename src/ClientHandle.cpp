@@ -1228,28 +1228,21 @@ void cClientHandle::HandleLeftClick(Vector3i a_BlockPos, eBlockFace a_BlockFace,
 
 		case DIG_STATUS_SHOOT_EAT:
 		{
-			auto & ItemHandler = m_Player->GetEquippedItem().GetHandler();
-			if (ItemHandler.IsFood() || ItemHandler.IsDrinkable(m_Player->GetEquippedItem().m_ItemDamage))
+			if (m_Player->IsEating())
 			{
 				m_Player->AbortEating();
 				return;
 			}
-			else
+			if (m_Player->IsChargingBow())
 			{
-				if (PlgMgr->CallHookPlayerShooting(*m_Player))
+				if (!m_Player->HasValidActiveItem() || PlgMgr->CallHookPlayerShooting(*m_Player))
 				{
-					// A plugin doesn't agree with the action. The plugin itself is responsible for handling the consequences (possible inventory mismatch)
+					m_Player->CancelChargingBow();
 					return;
 				}
-				// When bow is in off-hand / shield slot
-				if (m_Player->GetInventory().GetShieldSlot().m_ItemType == E_ITEM_BOW)
-				{
-					m_Player->GetInventory().GetShieldSlot().GetHandler().OnItemShoot(m_Player, a_BlockPos, a_BlockFace);
-				}
-				else
-				{
-					ItemHandler.OnItemShoot(m_Player, a_BlockPos, a_BlockFace);
-				}
+				cPlayer::cItemUseScope ItemUseScope(*m_Player, m_Player->GetActiveItemSlot());
+				m_Player->GetItemInUse().GetHandler().OnItemShoot(m_Player, a_BlockPos, a_BlockFace);
+				m_Player->ClearActiveItemUse();
 			}
 			return;
 		}
@@ -1510,12 +1503,12 @@ void cClientHandle::HandleRightClick(Vector3i a_BlockPos, eBlockFace a_BlockFace
 		return;
 	}
 
-	// TODO: We are still consuming the items in main hand. Remove this override when the off-hand consumption is handled correctly.
-	a_UsedMainHand = true;
+	cPlayer::cItemUseScope ItemUseScope(*m_Player, a_UsedMainHand ?
+		cInventory::invHotbarOffset + m_Player->GetInventory().GetEquippedSlotNum() : cInventory::invShieldOffset);
 
 	cWorld * World = m_Player->GetWorld();
 	cPluginManager * PlgMgr = cRoot::Get()->GetPluginManager();
-	const cItem & HeldItem = a_UsedMainHand ? m_Player->GetEquippedItem() : m_Player->GetInventory().GetShieldSlot();
+	const cItem & HeldItem = m_Player->GetItemInUse();
 
 	FLOGD("HandleRightClick: {0}, face {1}, Cursor {2}, Hand: {3}, HeldItem: {4}", a_BlockPos, a_BlockFace, a_CursorPos, a_UsedMainHand, ItemToFullString(HeldItem));
 
@@ -1596,8 +1589,7 @@ void cClientHandle::HandleRightClick(Vector3i a_BlockPos, eBlockFace a_BlockFace
 	// Update the target block including the block above and below for 2 block high things:
 	m_Player->SendBlocksAround(a_BlockPos, 2);
 
-	// TODO: Send corresponding slot based on hand
-	m_Player->GetInventory().SendEquippedSlot();
+	m_Player->SendItemInUse();
 }
 
 
@@ -1839,7 +1831,7 @@ void cClientHandle::HandleUpdateSign(
 
 
 
-void cClientHandle::HandleUseEntity(UInt32 a_TargetEntityID, bool a_IsLeftClick)
+void cClientHandle::HandleUseEntity(UInt32 a_TargetEntityID, bool a_IsLeftClick, bool a_UsedMainHand)
 {
 	// TODO: Let plugins interfere via a hook
 
@@ -1857,6 +1849,8 @@ void cClientHandle::HandleUseEntity(UInt32 a_TargetEntityID, bool a_IsLeftClick)
 	// If it is a right click, call the entity's OnRightClicked() handler:
 	if (!a_IsLeftClick)
 	{
+		cPlayer::cItemUseScope ItemUseScope(*m_Player, a_UsedMainHand ?
+			cInventory::invHotbarOffset + m_Player->GetInventory().GetEquippedSlotNum() : cInventory::invShieldOffset);
 		cWorld * World = m_Player->GetWorld();
 		World->DoWithEntityByID(a_TargetEntityID, [=](cEntity & a_Entity)
 			{
@@ -1878,7 +1872,7 @@ void cClientHandle::HandleUseEntity(UInt32 a_TargetEntityID, bool a_IsLeftClick)
 				}
 				if (a_Entity.IsPlayer() && (a_Entity.GetUniqueID() != m_Player->GetUniqueID()))
 				{
-					const cItem & HeldItem = m_Player->GetEquippedItem();
+					const cItem & HeldItem = m_Player->GetItemInUse();
 					const bool IsWheat = (HeldItem.m_ItemType == E_ITEM_WHEAT);
 					const bool IsFood = HeldItem.GetHandler().IsFood();
 					if (IsWheat || IsFood)
@@ -2003,9 +1997,9 @@ void cClientHandle::HandleUseItem(bool a_UsedMainHand)
 	// In version 1.8.x, this function shares the same packet id with HandleRightClick.
 	// In version >= 1.9, there is a new packet id for "Use Item".
 
-	// TODO: We are still consuming the items in main hand. Remove this override when the off-hand consumption is handled correctly.
-	a_UsedMainHand = true;
-	const cItem & HeldItem = a_UsedMainHand ? m_Player->GetEquippedItem() : m_Player->GetInventory().GetShieldSlot();
+	cPlayer::cItemUseScope ItemUseScope(*m_Player, a_UsedMainHand ?
+		cInventory::invHotbarOffset + m_Player->GetInventory().GetEquippedSlotNum() : cInventory::invShieldOffset);
+	const cItem & HeldItem = m_Player->GetItemInUse();
 	auto & ItemHandler = HeldItem.GetHandler();
 	cWorld * World = m_Player->GetWorld();
 	cPluginManager * PlgMgr = cRoot::Get()->GetPluginManager();
@@ -2776,6 +2770,11 @@ void cClientHandle::SendEntityEffect(const cEntity & a_Entity, int a_EffectID, i
 
 void cClientHandle::SendEntityEquipment(const cEntity & a_Entity, short a_SlotNum, const cItem & a_Item)
 {
+	if ((a_SlotNum == 5) && (m_ProtocolVersion < 107))
+	{
+		return;
+	}
+
 	if (a_Entity.IsPlayer())
 	{
 		const auto & Player = static_cast<const cPlayer &>(a_Entity);

@@ -402,7 +402,7 @@ public:  // tolua_export
 		const AString & a_Line3, const AString & a_Line4
 	);
 	void HandleUnmount          (void);
-	void HandleUseEntity        (UInt32 a_TargetEntityID, bool a_IsLeftClick);
+	void HandleUseEntity        (UInt32 a_TargetEntityID, bool a_IsLeftClick, bool a_UsedMainHand = true);
 	void HandleUseItem          (bool a_UsedMainHand);
 	void HandleWindowClick      (UInt8 a_WindowID, Int16 a_SlotNum, eClickAction a_ClickAction, const cItem & a_HeldItem);
 	void HandleWindowClose      (UInt8 a_WindowID);

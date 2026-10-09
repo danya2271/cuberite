@@ -432,6 +432,8 @@ void cPlayer::StartChargingBow(void)
 	LOGD("Player \"%s\" started charging their bow", GetName().c_str());
 	m_IsChargingBow = true;
 	m_BowCharge = 0;
+	m_ActiveItemSlot = GetItemInUseSlot();
+	m_ActiveItem = GetItemInUse();
 	m_World->BroadcastEntityMetadata(*this, m_ClientHandle.get());
 }
 
@@ -459,6 +461,7 @@ void cPlayer::CancelChargingBow(void)
 	LOGD("Player \"%s\" cancelled charging their bow at a charge of %d", GetName().c_str(), m_BowCharge);
 	m_IsChargingBow = false;
 	m_BowCharge = 0;
+	ClearActiveItemUse();
 	m_World->BroadcastEntityMetadata(*this, m_ClientHandle.get());
 }
 
@@ -662,6 +665,8 @@ void cPlayer::StartEating(void)
 {
 	// Set the timer:
 	m_EatingFinishTick = m_World->GetWorldAge() + EATING_TICKS;
+	m_ActiveItemSlot = GetItemInUseSlot();
+	m_ActiveItem = GetItemInUse();
 
 	// Send the packet:
 	m_World->BroadcastEntityMetadata(*this);
@@ -673,6 +678,12 @@ void cPlayer::StartEating(void)
 
 void cPlayer::FinishEating(void)
 {
+	if (!HasValidActiveItem())
+	{
+		AbortEating();
+		return;
+	}
+	cItemUseScope ItemUseScope(*this, m_ActiveItemSlot);
 	// Reset the timer:
 	m_EatingFinishTick = -1_tick;
 
@@ -681,14 +692,16 @@ void cPlayer::FinishEating(void)
 	m_World->BroadcastEntityMetadata(*this);
 
 	// consume the item:
-	cItem Item(GetEquippedItem());
+	cItem Item(GetItemInUse());
 	Item.m_ItemCount = 1;
 	auto & ItemHandler = Item.GetHandler();
 	if (!ItemHandler.EatItem(this, &Item))
 	{
+		ClearActiveItemUse();
 		return;
 	}
 	ItemHandler.OnFoodEaten(m_World, this, &Item);
+	ClearActiveItemUse();
 }
 
 
@@ -698,6 +711,7 @@ void cPlayer::FinishEating(void)
 void cPlayer::AbortEating(void)
 {
 	m_EatingFinishTick = -1_tick;
+	ClearActiveItemUse();
 	m_World->BroadcastEntityMetadata(*this);
 }
 
@@ -2245,7 +2259,101 @@ void cPlayer::UseEquippedItem(short a_Damage)
 		return;
 	}
 
-	UseItem(cInventory::invHotbarOffset + m_Inventory.GetEquippedSlotNum(), a_Damage);
+	UseItem((m_ItemInUseSlot >= 0) ? m_ItemInUseSlot : cInventory::invHotbarOffset + m_Inventory.GetEquippedSlotNum(), a_Damage);
+}
+
+
+
+
+
+cPlayer::cItemUseScope::cItemUseScope(cPlayer & a_Player, int a_SlotNum):
+	m_Player(a_Player),
+	m_PreviousSlot(a_Player.m_ItemInUseSlot),
+	m_PreviousInventorySlot(a_Player.m_Inventory.GetActiveSlot())
+{
+	m_Player.m_ItemInUseSlot = a_SlotNum;
+	m_Player.m_Inventory.SetActiveSlot(a_SlotNum);
+}
+
+
+
+
+
+cPlayer::cItemUseScope::~cItemUseScope()
+{
+	m_Player.m_ItemInUseSlot = m_PreviousSlot;
+	m_Player.m_Inventory.SetActiveSlot(m_PreviousInventorySlot);
+}
+
+
+
+
+
+int cPlayer::GetItemInUseSlot() const
+{
+	return (m_ItemInUseSlot >= 0) ? m_ItemInUseSlot : cInventory::invHotbarOffset + m_Inventory.GetEquippedSlotNum();
+}
+
+
+
+
+
+bool cPlayer::HasValidActiveItem() const
+{
+	return (m_ActiveItemSlot >= 0) && !m_ActiveItem.IsEmpty() && m_Inventory.GetSlot(m_ActiveItemSlot).IsEqual(m_ActiveItem) &&
+		((m_ActiveItemSlot == cInventory::invShieldOffset) || (m_ActiveItemSlot == cInventory::invHotbarOffset + m_Inventory.GetEquippedSlotNum()));
+}
+
+
+
+
+
+bool cPlayer::RemoveOneItemInUse()
+{
+	const auto SlotNum = GetItemInUseSlot();
+	if (m_Inventory.GetSlot(SlotNum).IsEmpty())
+	{
+		return false;
+	}
+	m_Inventory.ChangeSlotCount(SlotNum, -1);
+	return true;
+}
+
+
+
+
+
+void cPlayer::ReplaceOneItemInUseTossRest(const cItem & a_Item)
+{
+	const auto PlacedCount = m_Inventory.ReplaceOneItem(GetItemInUseSlot(), a_Item);
+	auto Pickup = a_Item;
+	Pickup.m_ItemCount -= static_cast<char>(PlacedCount);
+	if (!Pickup.IsEmpty())
+	{
+		TossPickup(Pickup);
+	}
+}
+
+
+
+
+
+void cPlayer::UseItemInUse(short a_Damage)
+{
+	if (!IsGameModeCreative() && !IsGameModeSpectator())
+	{
+		UseItem(GetItemInUseSlot(), a_Damage);
+	}
+}
+
+
+
+
+
+void cPlayer::ClearActiveItemUse()
+{
+	m_ActiveItemSlot = -1;
+	m_ActiveItem.Empty();
 }
 
 
@@ -3395,6 +3503,7 @@ void cPlayer::SpawnOn(cClientHandle & a_Client)
 	a_Client.SendEntityEquipment(*this, 2, m_Inventory.GetEquippedLeggings());
 	a_Client.SendEntityEquipment(*this, 3, m_Inventory.GetEquippedChestplate());
 	a_Client.SendEntityEquipment(*this, 4, m_Inventory.GetEquippedHelmet());
+	a_Client.SendEntityEquipment(*this, 5, m_Inventory.GetShieldSlot());
 }
 
 

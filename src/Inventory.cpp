@@ -231,12 +231,13 @@ cItem * cInventory::FindItem(const cItem & a_RecipeItem)
 
 bool cInventory::RemoveOneEquippedItem(void)
 {
-	if (m_HotbarSlots.GetSlot(m_EquippedSlotNum).IsEmpty())
+	const auto SlotNum = (m_ActiveSlot >= 0) ? m_ActiveSlot : invHotbarOffset + m_EquippedSlotNum;
+	if (GetSlot(SlotNum).IsEmpty())
 	{
 		return false;
 	}
 
-	m_HotbarSlots.ChangeSlotCount(m_EquippedSlotNum, -1);
+	ChangeSlotCount(SlotNum, -1);
 	return true;
 }
 
@@ -246,13 +247,23 @@ bool cInventory::RemoveOneEquippedItem(void)
 
 int cInventory::ReplaceOneEquippedItem(const cItem & a_Item, bool a_TryOtherSlots)
 {
-	// Ignore whether there was an item in the slot to remove.
-	RemoveOneEquippedItem();
+	const auto SlotNum = (m_ActiveSlot >= 0) ? m_ActiveSlot : invHotbarOffset + m_EquippedSlotNum;
+	return ReplaceOneItem(SlotNum, a_Item, a_TryOtherSlots);
+}
 
-	auto EquippedItem = GetEquippedItem();
+
+
+
+
+int cInventory::ReplaceOneItem(int a_SlotNum, const cItem & a_Item, bool a_TryOtherSlots)
+{
+	// Ignore whether there was an item in the slot to remove.
+	ChangeSlotCount(a_SlotNum, -1);
+
+	auto EquippedItem = GetSlot(a_SlotNum);
 	if (EquippedItem.IsEmpty())
 	{
-		SetEquippedItem(a_Item);
+		SetSlot(a_SlotNum, a_Item);
 		return a_Item.m_ItemCount;
 	}
 
@@ -263,7 +274,7 @@ int cInventory::ReplaceOneEquippedItem(const cItem & a_Item, bool a_TryOtherSlot
 		auto AmountToAdd = std::min(static_cast<char>(ItemsToAdd.GetMaxStackSize() - EquippedItem.m_ItemCount), ItemsToAdd.m_ItemCount);
 
 		EquippedItem.m_ItemCount += AmountToAdd;
-		SetEquippedItem(EquippedItem);
+		SetSlot(a_SlotNum, EquippedItem);
 		ItemsToAdd.m_ItemCount -= AmountToAdd;
 	}
 
@@ -379,7 +390,7 @@ void cInventory::SetEquippedItem(const cItem & a_Item)
 
 void cInventory::SendEquippedSlot()
 {
-	int EquippedSlotNum = cInventory::invArmorCount + cInventory::invInventoryCount + GetEquippedSlotNum();
+	const auto EquippedSlotNum = (m_ActiveSlot >= 0) ? m_ActiveSlot : cInventory::invArmorCount + cInventory::invInventoryCount + GetEquippedSlotNum();
 	SendSlot(EquippedSlotNum);
 }
 
@@ -462,7 +473,7 @@ const cItem & cInventory::GetShieldSlot() const
 
 const cItem & cInventory::GetEquippedItem(void) const
 {
-	return GetHotbarSlot(m_EquippedSlotNum);
+	return (m_ActiveSlot >= 0) ? GetSlot(m_ActiveSlot) : GetHotbarSlot(m_EquippedSlotNum);
 }
 
 
@@ -551,6 +562,7 @@ void cInventory::CopyToItems(cItems & a_Items)
 	m_ArmorSlots.CopyToItems(a_Items);
 	m_InventorySlots.CopyToItems(a_Items);
 	m_HotbarSlots.CopyToItems(a_Items);
+	m_ShieldSlots.CopyToItems(a_Items);
 }
 
 
@@ -685,10 +697,16 @@ bool cInventory::AddToBar(cItem & a_Item, const int a_Offset, const int a_Size, 
 
 void cInventory::UpdateItems(void)
 {
-	const cItem & Slot = GetEquippedItem();
-	if (!Slot.IsEmpty())
+	const cItem & MainHand = GetHotbarSlot(m_EquippedSlotNum);
+	if (!MainHand.IsEmpty())
 	{
-		Slot.GetHandler().OnUpdate(m_Owner.GetWorld(), &m_Owner, Slot);
+		MainHand.GetHandler().OnUpdate(m_Owner.GetWorld(), &m_Owner, MainHand);
+	}
+
+	const cItem & OffHand = GetShieldSlot();
+	if (!OffHand.IsEmpty())
+	{
+		OffHand.GetHandler().OnUpdate(m_Owner.GetWorld(), &m_Owner, OffHand);
 	}
 }
 
@@ -855,7 +873,7 @@ void cInventory::OnSlotChanged(cItemGrid * a_ItemGrid, int a_SlotNum)
 	// Broadcast the Equipped Item, if the Slot is changed.
 	if ((a_ItemGrid == &m_HotbarSlots) && (m_EquippedSlotNum == a_SlotNum))
 	{
-		m_Owner.GetWorld()->BroadcastEntityEquipment(m_Owner, 0, GetEquippedItem(), m_Owner.GetClientHandle());
+		m_Owner.GetWorld()->BroadcastEntityEquipment(m_Owner, 0, GetHotbarSlot(m_EquippedSlotNum), m_Owner.GetClientHandle());
 	}
 
 	// Convert the grid-local a_SlotNum to our global SlotNum:
@@ -875,6 +893,10 @@ void cInventory::OnSlotChanged(cItemGrid * a_ItemGrid, int a_SlotNum)
 	else if (a_ItemGrid == &m_ShieldSlots)
 	{
 		Base = invShieldOffset;
+		if (World != nullptr)
+		{
+			World->BroadcastEntityEquipment(m_Owner, 5, GetShieldSlot(), m_Owner.GetClientHandle());
+		}
 	}
 	else
 	{

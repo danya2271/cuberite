@@ -168,6 +168,30 @@ public:
 
 	inline const cItem & GetEquippedItem(void) const { return GetInventory().GetEquippedItem(); }  // tolua_export
 
+	class cItemUseScope
+	{
+	public:
+		cItemUseScope(cPlayer & a_Player, int a_SlotNum);
+		~cItemUseScope();
+		DISALLOW_COPY_AND_ASSIGN(cItemUseScope);
+
+	private:
+		cPlayer & m_Player;
+		int m_PreviousSlot;
+		int m_PreviousInventorySlot;
+	};
+
+	int GetItemInUseSlot() const;
+	const cItem & GetItemInUse() const { return m_Inventory.GetSlot(GetItemInUseSlot()); }
+	bool RemoveOneItemInUse();
+	void SendItemInUse() { m_Inventory.SendSlot(GetItemInUseSlot()); }
+	void ReplaceOneItemInUseTossRest(const cItem & a_Item);
+	void UseItemInUse(short a_Damage = 1);
+	void ClearActiveItemUse();
+	int GetActiveItemSlot() const { return m_ActiveItemSlot; }
+	bool IsUsingOffHand() const { return m_ActiveItemSlot == cInventory::invShieldOffset; }
+	bool HasValidActiveItem() const;
+
 	/** Returns whether the player is climbing (ladders, vines etc.) */
 	bool IsClimbing(void) const;
 
@@ -614,7 +638,7 @@ public:
 	void AddKnownItem(const cItem & a_Item);
 
 	// cEntity overrides:
-	virtual cItem GetEquippedWeapon(void) const override { return m_Inventory.GetEquippedItem(); }
+	virtual cItem GetEquippedWeapon(void) const override { return GetItemInUse(); }
 	virtual cItem GetEquippedHelmet(void) const override { return m_Inventory.GetEquippedHelmet(); }
 	virtual cItem GetEquippedChestplate(void) const override { return m_Inventory.GetEquippedChestplate(); }
 	virtual cItem GetEquippedLeggings(void) const override { return m_Inventory.GetEquippedLeggings(); }
@@ -741,6 +765,9 @@ private:
 
 	/** The world tick in which eating will be finished. -1 if not eating */
 	cTickTimeLong m_EatingFinishTick;
+	int m_ItemInUseSlot = -1;
+	int m_ActiveItemSlot = -1;
+	cItem m_ActiveItem;
 
 	/** Player Xp level */
 	int m_LifetimeTotalXp;
