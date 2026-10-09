@@ -95,7 +95,7 @@ private:
 
 	virtual bool IsInsideBlock(const Vector3d a_RelPosition, const NIBBLETYPE a_BlockMeta) const override
 	{
-		return a_RelPosition.y < (cBlockInfo::GetBlockHeight(m_BlockType) * (a_BlockMeta & 0x07));
+		return a_RelPosition.y < (cBlockInfo::GetBlockHeight(m_BlockType) * ((a_BlockMeta & 0x07) + 1));
 	}
 
 

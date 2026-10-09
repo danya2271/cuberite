@@ -89,6 +89,14 @@ public:
 
 
 private:
+	virtual bool IsInsideBlock(const Vector3d a_RelPosition, const NIBBLETYPE a_BlockMeta) const override
+	{
+		UNUSED(a_BlockMeta);
+		return a_RelPosition.y < 0.9375;
+	}
+
+
+
 
 	virtual cItems ConvertToPickups(const NIBBLETYPE a_BlockMeta, const cItem * const a_Tool) const override
 	{

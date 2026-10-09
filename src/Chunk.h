@@ -569,4 +569,5 @@ private:
 
 	/** Check m_Entities for cPlayer objects. */
 	bool HasPlayerEntities() const;
+	bool HasPickups() const;
 };

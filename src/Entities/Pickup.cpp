@@ -135,6 +135,10 @@ void cPickup::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 	BroadcastMovementUpdate();  // Notify clients of position
 
 	m_Timer += a_Dt;
+	if ((GetTicksAlive() % TPS) == 0)
+	{
+		a_Chunk.MarkDirty();
+	}
 
 	if (!m_bCollected)
 	{

@@ -12,6 +12,70 @@
 
 
 
+namespace
+{
+	bool IsSingleSlab(const BLOCKTYPE a_BlockType)
+	{
+		return (
+			(a_BlockType == E_BLOCK_STONE_SLAB) ||
+			(a_BlockType == E_BLOCK_WOODEN_SLAB) ||
+			(a_BlockType == E_BLOCK_RED_SANDSTONE_SLAB) ||
+			(a_BlockType == E_BLOCK_PURPUR_SLAB)
+		);
+	}
+
+
+
+
+	bool GetEntityCollisionBox(const Vector3i a_BlockPos, const BLOCKTYPE a_BlockType, const NIBBLETYPE a_BlockMeta, cBoundingBox & a_Box)
+	{
+		if (!cBlockInfo::IsSolid(a_BlockType) && (a_BlockType != E_BLOCK_CARPET) && (a_BlockType != E_BLOCK_SNOW))
+		{
+			return false;
+		}
+
+		double MinY = 0;
+		double MaxY = cBlockInfo::GetBlockHeight(a_BlockType);
+		if (IsSingleSlab(a_BlockType))
+		{
+			if ((a_BlockMeta & 0x08) != 0)
+			{
+				MinY = 0.5;
+				MaxY = 1;
+			}
+			else
+			{
+				MaxY = 0.5;
+			}
+		}
+		else if (a_BlockType == E_BLOCK_SNOW)
+		{
+			MaxY = cBlockInfo::GetBlockHeight(a_BlockType) * ((a_BlockMeta & 0x07) + 1);
+		}
+		else if (a_BlockType == E_BLOCK_CARPET)
+		{
+			MaxY = 0.0625;
+		}
+		else if (a_BlockType == E_BLOCK_FARMLAND)
+		{
+			MaxY = 0.9375;
+		}
+
+		if (MaxY <= MinY)
+		{
+			return false;
+		}
+
+		a_Box = cBoundingBox(
+			Vector3d(a_BlockPos.x, a_BlockPos.y + MinY, a_BlockPos.z),
+			Vector3d(a_BlockPos.x + 1, a_BlockPos.y + MaxY, a_BlockPos.z + 1)
+		);
+		return true;
+	}
+}
+
+
+
 
 
 cLineBlockTracer::cLineBlockTracer(cWorld & a_World, cCallbacks & a_Callbacks) :
@@ -117,22 +181,22 @@ bool cLineBlockTracer::FirstSolidHitTrace(
 					return false;
 				}
 			}
-			if (!cBlockInfo::IsSolid(a_BlockType))
+			cBoundingBox CollisionBox(Vector3d(0, 0, 0), Vector3d(0, 0, 0));
+			if (!GetEntityCollisionBox(a_BlockPos, a_BlockType, a_BlockMeta, CollisionBox))
 			{
 				return false;
 			}
 
-			// We hit a solid block, calculate the exact hit coords and abort trace:
-			m_HitBlockCoords = a_BlockPos;
-			m_HitBlockFace = a_EntryFace;
-			cBoundingBox bb(a_BlockPos, a_BlockPos + Vector3i(1, 1, 1));  // Bounding box of the block hit
+			// We hit a collision box, calculate the exact hit coords and abort trace:
+			cBoundingBox bb = CollisionBox;
 			double LineCoeff = 0;  // Used to calculate where along the line an intersection with the bounding box occurs
 			eBlockFace Face;  // Face hit
 			if (!bb.CalcLineIntersection(m_Start, m_End, LineCoeff, Face))
 			{
-				// Math rounding errors have caused the calculation to miss the block completely, assume immediate hit
-				LineCoeff = 0;
+				return false;
 			}
+			m_HitBlockCoords = a_BlockPos;
+			m_HitBlockFace = (Face == BLOCK_FACE_NONE) ? a_EntryFace : Face;
 			m_HitCoords = m_Start + (m_End - m_Start) * LineCoeff;  // Point where projectile goes into the hit block
 			return true;
 		}

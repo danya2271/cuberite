@@ -24,6 +24,14 @@ public:
 	using Super::Super;
 
 private:
+	virtual bool IsInsideBlock(const Vector3d a_RelPosition, const NIBBLETYPE a_BlockMeta) const override
+	{
+		UNUSED(a_BlockMeta);
+		return a_RelPosition.y < 0.0625;
+	}
+
+
+
 
 	virtual bool CanBeAt(const cChunk & a_Chunk, const Vector3i a_Position, const NIBBLETYPE a_Meta) const override
 	{

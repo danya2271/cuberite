@@ -9,6 +9,7 @@
 #include "../Matrix4.h"
 #include "../ClientHandle.h"
 #include "../Chunk.h"
+#include "../Blocks/BlockHandler.h"
 #include "../Simulator/FluidSimulator.h"
 #include "../Bindings/PluginManager.h"
 #include "../LineBlockTracer.h"
@@ -1046,28 +1047,42 @@ void cEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 	NIBBLETYPE BlockInMeta = NextChunk->GetMeta(RelBlockX, BlockY, RelBlockZ);
 	BLOCKTYPE BlockBelow = (BlockY > 0) ? NextChunk->GetBlock(RelBlockX, BlockY - 1, RelBlockZ) : E_BLOCK_AIR;
 	NIBBLETYPE BlockBelowMeta = (BlockY > 0) ? NextChunk->GetMeta(RelBlockX, BlockY - 1, RelBlockZ) : 0;
-	auto IsSolidForEntity = [&](const Vector3i & a_BlockPos, BLOCKTYPE a_BlockType, NIBBLETYPE a_BlockMeta)
+	auto IsSolidForEntity = [&](const Vector3i & a_BlockPos, BLOCKTYPE a_BlockType, NIBBLETYPE a_BlockMeta, bool a_IsGroundCheck)
 	{
-		if (!IsBlockDoor(a_BlockType))
+		if (IsBlockDoor(a_BlockType))
 		{
-			return cBlockInfo::IsSolid(a_BlockType);
-		}
-		if ((a_BlockMeta & 0x08) != 0)
-		{
-			BLOCKTYPE BottomBlockType;
-			NIBBLETYPE BottomBlockMeta;
-			if (m_World->GetBlockTypeMeta(a_BlockPos.addedY(-1), BottomBlockType, BottomBlockMeta) && IsBlockDoor(BottomBlockType))
+			if ((a_BlockMeta & 0x08) != 0)
 			{
-				a_BlockMeta = BottomBlockMeta;
+				BLOCKTYPE BottomBlockType;
+				NIBBLETYPE BottomBlockMeta;
+				if (m_World->GetBlockTypeMeta(a_BlockPos.addedY(-1), BottomBlockType, BottomBlockMeta) && IsBlockDoor(BottomBlockType))
+				{
+					a_BlockMeta = BottomBlockMeta;
+				}
 			}
+			return (a_BlockMeta & 0x04) == 0;
 		}
-		return (a_BlockMeta & 0x04) == 0;
+
+		if (!cBlockInfo::IsSolid(a_BlockType) && (a_BlockType != E_BLOCK_CARPET) && (a_BlockType != E_BLOCK_SNOW))
+		{
+			return false;
+		}
+
+		auto RelPosition = GetPosition() - Vector3d(a_BlockPos.x, a_BlockPos.y, a_BlockPos.z);
+		if (a_IsGroundCheck)
+		{
+			RelPosition.y -= 1e-7;
+		}
+		return cBlockHandler::For(a_BlockType).IsInsideBlock(RelPosition, a_BlockMeta);
 	};
-	if (!IsSolidForEntity({BlockX, BlockY, BlockZ}, BlockIn, BlockInMeta))  // Making sure we are not inside a solid block
+	if (!IsSolidForEntity({BlockX, BlockY, BlockZ}, BlockIn, BlockInMeta, false))  // Making sure we are not inside a solid block
 	{
 		if (m_bOnGround)  // check if it's still on the ground
 		{
-			if (!IsSolidForEntity({BlockX, BlockY - 1, BlockZ}, BlockBelow, BlockBelowMeta))  // Check if block below is air or water.
+			if (
+				!IsSolidForEntity({BlockX, BlockY, BlockZ}, BlockIn, BlockInMeta, true) &&
+				!IsSolidForEntity({BlockX, BlockY - 1, BlockZ}, BlockBelow, BlockBelowMeta, true)
+			)  // Check if block below is air or water.
 			{
 				m_bOnGround = false;
 			}
@@ -1102,7 +1117,7 @@ void cEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 				// The pickup is too close to an unloaded chunk, bail out of any physics handling
 				return;
 			}
-			if (!IsSolidForEntity({BlockX + gCrossCoords[i].x, BlockY, BlockZ + gCrossCoords[i].z}, GotBlock, GotMeta))
+			if (!IsSolidForEntity({BlockX + gCrossCoords[i].x, BlockY, BlockZ + gCrossCoords[i].z}, GotBlock, GotMeta, false))
 			{
 				NextPos.x += gCrossCoords[i].x;
 				NextPos.z += gCrossCoords[i].z;
@@ -1235,7 +1250,7 @@ void cEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 					NextSpeed.y = 0;
 					// We hit the ground, adjust the position to the top of the block:
 					m_bOnGround = true;
-					NextPos.y = HitBlockCoords.y + 1;
+					NextPos.y = HitCoords.y;
 					break;
 				}
 				case BLOCK_FACE_ZM:

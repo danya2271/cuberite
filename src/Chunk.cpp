@@ -204,11 +204,26 @@ bool cChunk::HasPlayerEntities() const
 
 
 
+bool cChunk::HasPickups() const
+{
+	return std::any_of(
+		m_Entities.begin(), m_Entities.end(),
+		[](const auto & Entity)
+		{
+			return Entity->IsPickup();
+		}
+	);
+}
+
+
+
+
 bool cChunk::CanUnload(void) const
 {
 	return
 		m_LoadedByClient.empty() &&  // The chunk is not used by any client
 		!HasPlayerEntities() &&      // Ensure not only the absence of ClientHandlers, but also of cPlayer objects
+		!HasPickups() &&
 		!m_IsDirty &&                // The chunk has been saved properly or hasn't been touched since the load / gen
 		(m_StayCount == 0) &&        // The chunk is not in a ChunkStay
 		(m_Presence != cpQueued) ;   // The chunk is not queued for loading / generating (otherwise multi-load / multi-gen could occur)
@@ -223,6 +238,7 @@ bool cChunk::CanUnloadAfterSaving(void) const
 	return
 		m_LoadedByClient.empty() &&  // The chunk is not used by any client
 		!HasPlayerEntities() &&      // Ensure not only the absence of ClientHandlers, but also of cPlayer objects
+		!HasPickups() &&
 		m_IsDirty &&                 // The chunk is dirty
 		(m_StayCount == 0) &&        // The chunk is not in a ChunkStay
 		(m_Presence != cpQueued) ;   // The chunk is not queued for loading / generating (otherwise multi-load / multi-gen could occur)
@@ -1457,7 +1473,7 @@ cBlockEntity * cChunk::GetBlockEntityRel(Vector3i a_RelPos)
 
 bool cChunk::ShouldBeTicked(void) const
 {
-	return IsValid() && (HasAnyClients() || (m_AlwaysTicked > 0));
+	return IsValid() && (HasAnyClients() || HasPickups() || (m_AlwaysTicked > 0));
 }
 
 
