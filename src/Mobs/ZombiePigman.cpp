@@ -3,6 +3,7 @@
 #include "ZombiePigman.h"
 #include "../World.h"
 #include "../ClientHandle.h"
+#include "../Entities/Player.h"
 
 
 
@@ -38,15 +39,35 @@ void cZombiePigman::GetDrops(cItems & a_Drops, cEntity * a_Killer)
 
 
 
-void cZombiePigman::KilledBy(TakeDamageInfo & a_TDI)
+bool cZombiePigman::DoTakeDamage(TakeDamageInfo & a_TDI)
 {
-	Super::KilledBy(a_TDI);
-
-	if ((a_TDI.Attacker != nullptr) && (a_TDI.Attacker->IsPlayer()))
+	if (!Super::DoTakeDamage(a_TDI))
 	{
-		// TODO: Anger all nearby zombie pigmen
-		// TODO: In vanilla, if one player angers ZPs, do they attack any nearby player, or only that one attacker?
+		return false;
 	}
+	if (
+		IsPlayerTamed() || (a_TDI.Attacker == nullptr) || !a_TDI.Attacker->IsPlayer() ||
+		!static_cast<cPlayer *>(a_TDI.Attacker)->CanMobsTarget()
+	)
+	{
+		return true;
+	}
+	auto & Attacker = static_cast<cPlayer &>(*a_TDI.Attacker);
+	m_World->ForEachEntityInBox(cBoundingBox(GetPosition(), 32, 20, -10), [&](cEntity & a_Entity)
+	{
+		if (!a_Entity.IsMob() || (a_Entity.GetHealth() <= 0))
+		{
+			return false;
+		}
+		auto & Monster = static_cast<cMonster &>(a_Entity);
+		if ((Monster.GetMobType() == mtZombiePigman) && !Monster.IsPlayerTamed())
+		{
+			Monster.SetTarget(&Attacker);
+			Monster.m_EMState = CHASING;
+		}
+		return false;
+	});
+	return true;
 }
 
 

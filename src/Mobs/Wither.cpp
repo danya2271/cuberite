@@ -5,6 +5,7 @@
 
 #include "../World.h"
 #include "../Entities/Player.h"
+#include "../Entities/WitherSkullEntity.h"
 #include "../ClientHandle.h"
 #include "../CompositeChat.h"
 
@@ -136,6 +137,39 @@ void cWither::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 			Heal(10);
 		}
 	}
+	else if ((GetTicksAlive() % 20) == 0)
+	{
+		Heal(1);
+		m_World->BroadcastBossBarUpdateHealth(*this, GetUniqueID(), GetHealth() / GetMaxHealth());
+	}
 
 	m_World->BroadcastEntityMetadata(*this);
+}
+
+
+
+
+
+bool cWither::Attack(std::chrono::milliseconds a_Dt)
+{
+	if ((m_WitherInvulnerableTicks > 0) || (GetTarget() == nullptr) || (m_AttackCoolDownTicksLeft != 0))
+	{
+		return false;
+	}
+	const auto Origin = GetPosition().addedY(2.5);
+	auto Direction = GetTarget()->GetPosition().addedY(GetTarget()->GetHeight() / 2) - Origin;
+	if (Direction.SqrLength() < 0.0001)
+	{
+		return false;
+	}
+	Direction.Normalize();
+	auto Skull = std::make_unique<cWitherSkullEntity>(this, Origin + Direction, Direction * 20);
+	const auto SkullPtr = Skull.get();
+	if (!SkullPtr->Initialize(std::move(Skull), *m_World))
+	{
+		return false;
+	}
+	ResetAttackCooldown();
+	m_World->BroadcastSoundEffect("entity.wither.shoot", GetPosition(), 1, 1);
+	return true;
 }

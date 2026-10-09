@@ -4,6 +4,7 @@
 // Implements the cHopperEntity representing a hopper block entity
 
 #include "Globals.h"
+#include "../Entities/Minecart.h"
 #include "HopperEntity.h"
 #include "../Chunk.h"
 #include "../Entities/Player.h"
@@ -187,6 +188,11 @@ bool cHopperEntity::MoveItemsIn(cChunk & a_Chunk, const cTickTimeLong a_CurrentT
 			res = MoveItemsFromGrid(*static_cast<cBlockEntityWithItems *>(a_Chunk.GetBlockEntity(this->GetPos().addedY(1))));
 			break;
 		}
+		default:
+		{
+			res = MoveItemsFromMinecart();
+			break;
+		}
 	}
 
 	// If the item has been moved, reset the last tick:
@@ -196,6 +202,52 @@ bool cHopperEntity::MoveItemsIn(cChunk & a_Chunk, const cTickTimeLong a_CurrentT
 	}
 
 	return res;
+}
+
+
+
+
+
+bool cHopperEntity::MoveItemsFromMinecart(void)
+{
+	bool Moved = false;
+	m_World->ForEachEntityInBox(cBoundingBox(Vector3d(m_Pos).addedY(1) + Vector3d(0.5, 0, 0.5), 0.5, 1), [&](cEntity & a_Entity)
+	{
+		if (!a_Entity.IsMinecart())
+		{
+			return false;
+		}
+		auto & Minecart = static_cast<cMinecart &>(a_Entity);
+		cItemGrid * Contents = nullptr;
+		if (Minecart.GetPayload() == cMinecart::mpChest)
+		{
+			Contents = &static_cast<cMinecartWithChest &>(Minecart).GetContents();
+		}
+		else if (Minecart.GetPayload() == cMinecart::mpHopper)
+		{
+			Contents = &static_cast<cMinecartWithHopper &>(Minecart).GetContents();
+		}
+		if (Contents == nullptr)
+		{
+			return false;
+		}
+		for (int Slot = 0; Slot < Contents->GetNumSlots(); ++Slot)
+		{
+			if (Contents->IsSlotEmpty(Slot))
+			{
+				continue;
+			}
+			auto Item = Contents->GetSlot(Slot).CopyOne();
+			if (m_Contents.AddItem(Item) != 0)
+			{
+				Contents->ChangeSlotCount(Slot, -1);
+				Moved = true;
+				return true;
+			}
+		}
+		return false;
+	});
+	return Moved;
 }
 
 

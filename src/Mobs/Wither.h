@@ -32,6 +32,7 @@ public:
 	virtual void KilledBy(TakeDamageInfo & a_TDI) override;
 	virtual void SpawnOn(cClientHandle & a_Client) override;
 	virtual void Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk) override;
+	virtual bool Attack(std::chrono::milliseconds a_Dt) override;
 
 private:
 

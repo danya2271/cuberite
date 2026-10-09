@@ -849,7 +849,8 @@ void cPawn::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 
 cMonster::cMonster(const AString & a_StringA, enum eMonsterType a_MonsterType, const AString & a_StringB, const AString & a_StringC, const AString & a_StringD, float a_Width, float a_Height) :
 	cPawn(etMonster, a_Width, a_Height),
-	m_PathFinder(a_Width, a_Height)
+	m_PathFinder(a_Width, a_Height),
+	m_PlayerOwnerContents(10, 1)
 {
 }
 

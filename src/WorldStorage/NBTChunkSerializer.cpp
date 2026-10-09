@@ -37,6 +37,7 @@
 #include "../Entities/FallingBlock.h"
 #include "../Entities/Boat.h"
 #include "../Entities/Minecart.h"
+#include "MinecartSerializer.h"
 #include "../Entities/Pickup.h"
 #include "../Entities/ArrowEntity.h"
 #include "../Entities/SplashPotionEntity.h"
@@ -750,23 +751,39 @@ public:
 				case cMinecart::mpFurnace:
 				{
 					AddBasicEntity(a_Minecart, "MinecartFurnace");
-					// TODO: Add "Push" and "Fuel" tags
+					const auto Furnace = static_cast<cMinecartWithFurnace *>(a_Minecart);
+					const auto Push = Furnace->GetPush();
+					MinecartSerializer::WriteFurnace(mWriter, { Furnace->GetFueledTimeLeft(), Push.x, Push.z });
 					break;
 				}
 				case cMinecart::mpHopper:
 				{
 					AddBasicEntity(a_Minecart, "MinecartHopper");
-					// TODO: Add hopper contents?
+					const auto Hopper = static_cast<cMinecartWithHopper *>(a_Minecart);
+					mWriter.BeginList("Items", TAG_Compound);
+						AddItemGrid(Hopper->GetContents());
+					mWriter.EndList();
+					MinecartSerializer::WriteHopper(mWriter, { Hopper->GetTransferCooldown(), Hopper->IsEnabled() });
 					break;
 				}
 				case cMinecart::mpTNT:
 				{
 					AddBasicEntity(a_Minecart, "MinecartTNT");
+					MinecartSerializer::WriteFuse(mWriter, static_cast<cMinecartWithTNT *>(a_Minecart)->GetFuseTicks());
 					break;
 				}
 				case cMinecart::mpNone:
 				{
 					AddBasicEntity(a_Minecart, "MinecartRideable");
+					const auto Rideable = static_cast<cRideableMinecart *>(a_Minecart);
+					const auto & Content = Rideable->GetContent();
+					mWriter.AddByte("CustomDisplayTile", Content.IsEmpty() ? 0 : 1);
+					if (!Content.IsEmpty())
+					{
+						mWriter.AddInt("DisplayTile", Content.m_ItemType);
+						mWriter.AddInt("DisplayData", Content.m_ItemDamage);
+						mWriter.AddInt("DisplayOffset", Rideable->GetBlockHeight());
+					}
 					break;
 				}
 			}  // switch (Payload)

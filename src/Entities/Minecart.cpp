@@ -15,6 +15,11 @@
 #include "Player.h"
 #include "../BoundingBox.h"
 #include "../UI/MinecartWithChestWindow.h"
+#include "../UI/MinecartWithHopperWindow.h"
+#include "../BlockEntities/BlockEntityWithItems.h"
+#include "../BlockEntities/ChestEntity.h"
+#include "../BlockEntities/FurnaceEntity.h"
+#include "Pickup.h"
 
 #define NO_SPEED 0.0
 #define MAX_SPEED 8
@@ -670,7 +675,10 @@ void cMinecart::HandleDetectorRailPhysics(NIBBLETYPE a_RailMeta, std::chrono::mi
 void cMinecart::HandleActivatorRailPhysics(NIBBLETYPE a_RailMeta, std::chrono::milliseconds a_Dt)
 {
 	HandleRailPhysics(a_RailMeta & 0x07, a_Dt);
-	// TODO - shake minecart, throw entities out
+	if ((m_Payload == mpNone) && ((a_RailMeta & 0x08) != 0) && (m_Attachee != nullptr))
+	{
+		m_Attachee->Detach();
+	}
 }
 
 
@@ -1434,7 +1442,7 @@ void cMinecartWithChest::OpenNewWindow()
 
 cMinecartWithFurnace::cMinecartWithFurnace(Vector3d a_Pos):
 	Super(mpFurnace, a_Pos),
-	m_FueledTimeLeft(-1),
+	m_FueledTimeLeft(0),
 	m_IsFueled(false)
 {
 }
@@ -1454,20 +1462,46 @@ void cMinecartWithFurnace::GetDrops(cItems & a_Drops, cEntity * a_Killer)
 
 void cMinecartWithFurnace::OnRightClicked(cPlayer & a_Player)
 {
-	if (a_Player.GetEquippedItem().m_ItemType == E_ITEM_COAL)
+	if ((a_Player.GetEquippedItem().m_ItemType == E_ITEM_COAL) && (m_FueledTimeLeft <= 32000 - 3600))
 	{
 		if (!a_Player.IsGameModeCreative())
 		{
 			a_Player.GetInventory().RemoveOneEquippedItem();
 		}
-		if (!m_IsFueled)  // We don't want to change the direction by right clicking it.
-		{
-			AddSpeed(a_Player.GetLookVector().x, 0, a_Player.GetLookVector().z);
-		}
-		m_IsFueled = true;
-		m_FueledTimeLeft = m_FueledTimeLeft + 600;  // The minecart will be active 600 more ticks.
+		SetIsFueled(true, m_FueledTimeLeft + 3600);
 		m_World->BroadcastEntityMetadata(*this);
 	}
+	SetPush(GetPosition() - a_Player.GetPosition());
+	m_World->MarkChunkDirty(GetChunkX(), GetChunkZ());
+}
+
+
+
+
+
+
+void cMinecartWithFurnace::SetIsFueled(bool a_IsFueled, int a_FueledTimeLeft)
+{
+	m_FueledTimeLeft = a_IsFueled ? Clamp(a_FueledTimeLeft, 0, 32000) : 0;
+	m_IsFueled = (m_FueledTimeLeft > 0);
+	if (!m_IsFueled)
+	{
+		m_Push.Set(0, 0, 0);
+	}
+}
+
+
+
+
+
+void cMinecartWithFurnace::SetPush(Vector3d a_Push)
+{
+	if (!std::isfinite(a_Push.x) || !std::isfinite(a_Push.z))
+	{
+		return;
+	}
+	a_Push.y = 0;
+	m_Push = a_Push;
 }
 
 
@@ -1485,19 +1519,38 @@ void cMinecartWithFurnace::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk
 
 	if (m_IsFueled)
 	{
-		m_FueledTimeLeft--;
-		if (m_FueledTimeLeft < 0)
+		--m_FueledTimeLeft;
+		m_World->MarkChunkDirty(GetChunkX(), GetChunkZ());
+		if (m_FueledTimeLeft == 0)
 		{
-			m_IsFueled = false;
+			SetIsFueled(false);
 			m_World->BroadcastEntityMetadata(*this);
 			return;
 		}
 
-		if (GetSpeed().Length() > 6)
+		if (
+			(m_Push.SqrLength() < 0.0001) ||
+			(!IsBlockRail(m_World->GetBlock(POS_TOINT)) && !IsBlockRail(m_World->GetBlock(POS_TOINT.addedY(-1))))
+		)
 		{
 			return;
 		}
-		AddSpeed(GetSpeed() / 4);
+		auto Direction = GetSpeed();
+		Direction.y = 0;
+		if (Direction.SqrLength() > 0.01)
+		{
+			m_Push = Direction;
+		}
+		m_Push.Normalize();
+		AddSpeed(m_Push * 0.8);
+		auto Speed = GetSpeed();
+		const auto HorizontalSpeed = std::hypot(Speed.x, Speed.z);
+		if (HorizontalSpeed > 4)
+		{
+			Speed.x *= 4 / HorizontalSpeed;
+			Speed.z *= 4 / HorizontalSpeed;
+			SetSpeed(Speed);
+		}
 	}
 }
 
@@ -1517,14 +1570,27 @@ cMinecartWithTNT::cMinecartWithTNT(Vector3d a_Pos):
 
 
 
+void cMinecartWithTNT::SpawnOn(cClientHandle & a_ClientHandle)
+{
+	Super::SpawnOn(a_ClientHandle);
+	if (m_TNTFuseTicksLeft >= 0)
+	{
+		a_ClientHandle.SendEntityAnimation(*this, EntityAnimation::MinecartTNTIgnites);
+	}
+}
+
+
+
+
+
 void cMinecartWithTNT::HandleActivatorRailPhysics(NIBBLETYPE a_RailMeta, std::chrono::milliseconds a_Dt)
 {
 	Super::HandleActivatorRailPhysics(a_RailMeta, a_Dt);
 
-	if ((a_RailMeta & 0x08) && !m_isTNTFused)
+	if ((a_RailMeta & 0x08) && (m_TNTFuseTicksLeft < 0))
 	{
-		m_isTNTFused = true;
 		m_TNTFuseTicksLeft = 80;
+		m_World->MarkChunkDirty(GetChunkX(), GetChunkZ());
 		m_World->BroadcastSoundEffect("entity.tnt.primed", GetPosition(), 1.0f, 1.0f);
 		m_World->BroadcastEntityAnimation(*this, EntityAnimation::MinecartTNTIgnites);
 	}
@@ -1551,13 +1617,14 @@ void cMinecartWithTNT::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 		return;
 	}
 
-	if (m_isTNTFused)
+	if (m_TNTFuseTicksLeft >= 0)
 	{
 		if (m_TNTFuseTicksLeft > 0)
 		{
 			--m_TNTFuseTicksLeft;
+			m_World->MarkChunkDirty(GetChunkX(), GetChunkZ());
 		}
-		else if (m_World->TryBeginTNTExplosion())
+		if ((m_TNTFuseTicksLeft == 0) && m_World->TryBeginTNTExplosion())
 		{
 			Destroy();
 			m_World->DoExplosionAt(4.0, GetPosX(), GetPosY() + GetHeight() / 2, GetPosZ(), true, esTNTMinecart, this);
@@ -1573,12 +1640,226 @@ void cMinecartWithTNT::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 // cMinecartWithHopper:
 
 cMinecartWithHopper::cMinecartWithHopper(Vector3d a_Pos):
-	Super(mpHopper, a_Pos)
+	Super(mpHopper, a_Pos),
+	cEntityWindowOwner(this),
+	m_Contents(5, 1),
+	m_LastTransferPosition(a_Pos.Floor())
 {
+	m_Contents.AddListener(*this);
 }
 
-// TODO: Make it suck up blocks and travel further than any other cart and physics and put and take blocks
-// AND AVARYTHING!!
+
+
+
+
+void cMinecartWithHopper::OnSlotChanged(cItemGrid * a_Grid, int a_Slot)
+{
+	UNUSED(a_Slot);
+	ASSERT(a_Grid == &m_Contents);
+	if (m_World != nullptr)
+	{
+		if (GetWindow() != nullptr)
+		{
+			GetWindow()->BroadcastWholeWindow();
+		}
+		m_World->MarkChunkDirty(GetChunkX(), GetChunkZ());
+	}
+}
+
+
+
+
+
+void cMinecartWithHopper::OnRightClicked(cPlayer & a_Player)
+{
+	if (GetWindow() == nullptr)
+	{
+		OpenWindow(new cMinecartWithHopperWindow(*this));
+	}
+	a_Player.OpenWindow(*GetWindow());
+}
+
+
+
+
+
+void cMinecartWithHopper::OnRemoveFromWorld(cWorld & a_World)
+{
+	if (GetWindow() != nullptr)
+	{
+		GetWindow()->OwnerDestroyed();
+	}
+	Super::OnRemoveFromWorld(a_World);
+}
+
+
+
+
+
+void cMinecartWithHopper::OnAddToWorld(cWorld & a_World)
+{
+	Super::OnAddToWorld(a_World);
+	m_LastTransferPosition = POS_TOINT;
+}
+
+
+
+
+
+void cMinecartWithHopper::HandleActivatorRailPhysics(NIBBLETYPE a_RailMeta, std::chrono::milliseconds a_Dt)
+{
+	Super::HandleActivatorRailPhysics(a_RailMeta, a_Dt);
+	const auto Enabled = ((a_RailMeta & 0x08) == 0);
+	if (m_IsEnabled != Enabled)
+	{
+		m_IsEnabled = Enabled;
+		m_World->MarkChunkDirty(GetChunkX(), GetChunkZ());
+	}
+}
+
+
+
+
+
+bool cMinecartWithHopper::MoveItemFromGrid(cItemGrid & a_Grid, int a_Slot)
+{
+	if (a_Grid.IsSlotEmpty(a_Slot))
+	{
+		return false;
+	}
+	auto Item = a_Grid.GetSlot(a_Slot).CopyOne();
+	if (m_Contents.AddItem(Item) == 0)
+	{
+		return false;
+	}
+	a_Grid.ChangeSlotCount(a_Slot, -1);
+	return true;
+}
+
+
+
+
+
+bool cMinecartWithHopper::MoveItemsIn(void)
+{
+	const auto Above = POS_TOINT.addedY(1);
+	bool Moved = false;
+	m_World->DoWithBlockEntityAt(Above, [&](cBlockEntity & a_Entity)
+	{
+		auto ContainerPtr = dynamic_cast<cBlockEntityWithItems *>(&a_Entity);
+		if (ContainerPtr == nullptr)
+		{
+			return false;
+		}
+		auto & Container = *ContainerPtr;
+		if ((a_Entity.GetBlockType() == E_BLOCK_FURNACE) || (a_Entity.GetBlockType() == E_BLOCK_LIT_FURNACE))
+		{
+			Moved = MoveItemFromGrid(Container.GetContents(), cFurnaceEntity::fsOutput);
+			if (!Moved && (Container.GetSlot(cFurnaceEntity::fsFuel).m_ItemType == E_ITEM_BUCKET))
+			{
+				Moved = MoveItemFromGrid(Container.GetContents(), cFurnaceEntity::fsFuel);
+			}
+			return true;
+		}
+		for (int Slot = 0; Slot < Container.GetContents().GetNumSlots(); ++Slot)
+		{
+			if (MoveItemFromGrid(Container.GetContents(), Slot))
+			{
+				Moved = true;
+				return true;
+			}
+		}
+		if ((a_Entity.GetBlockType() == E_BLOCK_CHEST) || (a_Entity.GetBlockType() == E_BLOCK_TRAPPED_CHEST))
+		{
+			auto & Chest = static_cast<cChestEntity &>(a_Entity);
+			const auto Secondary = Chest.GetSecondaryChest();
+			const auto OtherHalf = (&Chest.GetPrimaryChest() == &Chest) ? Secondary : &Chest.GetPrimaryChest();
+			if (OtherHalf != nullptr)
+			{
+				for (int Slot = 0; Slot < OtherHalf->GetContents().GetNumSlots(); ++Slot)
+				{
+					if (MoveItemFromGrid(OtherHalf->GetContents(), Slot))
+					{
+						Moved = true;
+						break;
+					}
+				}
+			}
+		}
+		return Moved;
+	});
+	if (Moved)
+	{
+		return true;
+	}
+
+	auto CollectPickup = [&](cEntity & a_Entity)
+	{
+		if (!a_Entity.IsTicking() || !a_Entity.IsPickup())
+		{
+			return false;
+		}
+		auto & Pickup = static_cast<cPickup &>(a_Entity);
+		if (Pickup.IsCollected() || Pickup.GetItem().IsEmpty())
+		{
+			return false;
+		}
+		auto & Item = Pickup.GetItem();
+		const auto Added = m_Contents.AddItem(Item);
+		if (Added == 0)
+		{
+			return false;
+		}
+		Item.AddCount(-Added);
+		if (Item.IsEmpty())
+		{
+			Pickup.Destroy();
+		}
+		else
+		{
+			m_World->BroadcastEntityMetadata(Pickup);
+			m_World->MarkChunkDirty(Pickup.GetChunkX(), Pickup.GetChunkZ());
+		}
+		Moved = true;
+		return true;
+	};
+	m_World->ForEachEntityInBox(cBoundingBox(GetPosition().addedY(0.5), 0.5, 1), CollectPickup);
+	if (!Moved)
+	{
+		auto Box = GetBoundingBox();
+		Box.Expand(0.25, 0, 0.25);
+		m_World->ForEachEntityInBox(Box, CollectPickup);
+	}
+	return Moved;
+}
+
+
+
+
+
+void cMinecartWithHopper::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
+{
+	Super::Tick(a_Dt, a_Chunk);
+	if (!IsTicking() || !m_IsEnabled)
+	{
+		return;
+	}
+	const auto Position = POS_TOINT;
+	if (Position != m_LastTransferPosition)
+	{
+		m_TransferCooldown = 0;
+		m_LastTransferPosition = Position;
+	}
+	if (m_TransferCooldown > 0)
+	{
+		--m_TransferCooldown;
+		m_World->MarkChunkDirty(GetChunkX(), GetChunkZ());
+	}
+	if ((m_TransferCooldown == 0) && MoveItemsIn())
+	{
+		m_TransferCooldown = 4;
+	}
+}
 
 
 
@@ -1586,5 +1867,6 @@ cMinecartWithHopper::cMinecartWithHopper(Vector3d a_Pos):
 
 void cMinecartWithHopper::GetDrops(cItems & a_Drops, cEntity * a_Killer)
 {
+	m_Contents.CopyToItems(a_Drops);
 	a_Drops.emplace_back(E_ITEM_MINECART_WITH_HOPPER);
 }

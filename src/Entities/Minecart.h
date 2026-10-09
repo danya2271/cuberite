@@ -141,6 +141,7 @@ public:
 
 	const cItem & GetSlot(int a_Idx) const { return m_Contents.GetSlot(a_Idx); }
 	void SetSlot(int a_Idx, const cItem & a_Item) { m_Contents.SetSlot(a_Idx, a_Item); }
+	cItemGrid & GetContents(void) { return m_Contents; }
 
 
 protected:
@@ -191,16 +192,19 @@ public:
 	virtual void Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk) override;
 
 	// Set functions.
-	void SetIsFueled(bool a_IsFueled, int a_FueledTimeLeft = -1) {m_IsFueled = a_IsFueled; m_FueledTimeLeft = a_FueledTimeLeft;}
+	void SetIsFueled(bool a_IsFueled, int a_FueledTimeLeft = -1);
+	void SetPush(Vector3d a_Push);
 
 	// Get functions.
 	int  GetFueledTimeLeft(void) const {return m_FueledTimeLeft; }
 	bool IsFueled (void)         const {return m_IsFueled;}
+	Vector3d GetPush(void) const { return m_Push; }
 
 private:
 
 	int m_FueledTimeLeft;
 	bool m_IsFueled;
+	Vector3d m_Push;
 
 } ;
 
@@ -219,10 +223,12 @@ public:
 
 	cMinecartWithTNT(Vector3d a_Pos);
 	void Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk) override;
+	virtual void SpawnOn(cClientHandle & a_ClientHandle) override;
+	int GetFuseTicks(void) const { return m_TNTFuseTicksLeft; }
+	void SetFuseTicks(int a_Ticks) { m_TNTFuseTicksLeft = std::max(-1, a_Ticks); }
 
 private:
-	int m_TNTFuseTicksLeft;
-	bool m_isTNTFused = false;
+	int m_TNTFuseTicksLeft = -1;
 
 	virtual void GetDrops(cItems & a_Drops, cEntity * a_Killer = nullptr) override;
 	void HandleActivatorRailPhysics(NIBBLETYPE a_RailMeta, std::chrono::milliseconds a_Dt) override;
@@ -233,7 +239,9 @@ private:
 
 
 class cMinecartWithHopper final :
-	public cMinecart
+	public cMinecart,
+	public cItemGrid::cListener,
+	public cEntityWindowOwner
 {
 	using Super = cMinecart;
 
@@ -242,8 +250,25 @@ public:
 	CLASS_PROTODEF(cMinecartWithHopper)
 
 	cMinecartWithHopper(Vector3d a_Pos);
+	cItemGrid & GetContents(void) { return m_Contents; }
+	bool IsEnabled(void) const { return m_IsEnabled; }
+	void SetEnabled(bool a_Enabled) { m_IsEnabled = a_Enabled; }
+	int GetTransferCooldown(void) const { return m_TransferCooldown; }
+	void SetTransferCooldown(int a_Ticks) { m_TransferCooldown = std::max(0, a_Ticks); }
+	virtual void Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk) override;
+	virtual void OnRightClicked(cPlayer & a_Player) override;
+	virtual void OnRemoveFromWorld(cWorld & a_World) override;
+	virtual void OnAddToWorld(cWorld & a_World) override;
 
 private:
+	cItemGrid m_Contents;
+	bool m_IsEnabled = true;
+	int m_TransferCooldown = 0;
+	Vector3i m_LastTransferPosition;
 
+	bool MoveItemsIn(void);
+	bool MoveItemFromGrid(cItemGrid & a_Grid, int a_Slot);
+	virtual void OnSlotChanged(cItemGrid * a_Grid, int a_Slot) override;
+	virtual void HandleActivatorRailPhysics(NIBBLETYPE a_RailMeta, std::chrono::milliseconds a_Dt) override;
 	virtual void GetDrops(cItems & a_Drops, cEntity * a_Killer = nullptr) override;
 } ;

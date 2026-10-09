@@ -5,6 +5,7 @@ target_sources(
 	FastNBT.cpp
 	FireworksSerializer.cpp
 	MapSerializer.cpp
+	MinecartSerializer.cpp
 	NamespaceSerializer.cpp
 	NBTChunkSerializer.cpp
 	SchematicFileSerializer.cpp
@@ -17,6 +18,7 @@ target_sources(
 	FastNBT.h
 	FireworksSerializer.h
 	MapSerializer.h
+	MinecartSerializer.h
 	NamespaceSerializer.h
 	NBTChunkSerializer.h
 	SchematicFileSerializer.h

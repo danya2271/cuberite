@@ -76,6 +76,7 @@ protected:
 
 	/** Moves items from the specified a_Entity's Contents into this hopper. Returns true if contents have changed. */
 	bool MoveItemsFromGrid(cBlockEntityWithItems & a_Entity);
+	bool MoveItemsFromMinecart(void);
 
 	/** Moves one piece from the specified itemstack into this hopper. Returns true if contents have changed. Doesn't change the itemstack. */
 	bool MoveItemsFromSlot(cBlockEntityWithItems & a_Entity, int a_SrcSlotNum);

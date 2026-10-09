@@ -40,6 +40,7 @@
 #include "../Entities/EnderCrystal.h"
 #include "../Entities/FallingBlock.h"
 #include "../Entities/Minecart.h"
+#include "MinecartSerializer.h"
 #include "../Entities/Pickup.h"
 #include "../Entities/ArrowEntity.h"
 #include "../Entities/SplashPotionEntity.h"
@@ -1832,7 +1833,43 @@ void cWSSAnvil::LoadFallingBlockFromNBT(cEntityList & a_Entities, const cParsedN
 
 void cWSSAnvil::LoadMinecartRFromNBT(cEntityList & a_Entities, const cParsedNBT & a_NBT, int a_TagIdx)
 {
-	auto Minecart = std::make_unique<cRideableMinecart>(Vector3d(), cItem(), 1);  // TODO: Load the block and the height
+	cItem Content;
+	int Offset = 1;
+	const auto CustomDisplay = a_NBT.FindChildByName(a_TagIdx, "CustomDisplayTile");
+	if ((CustomDisplay >= 0) && (a_NBT.GetType(CustomDisplay) == TAG_Byte) && (a_NBT.GetByte(CustomDisplay) != 0))
+	{
+		const auto Tile = a_NBT.FindChildByName(a_TagIdx, "DisplayTile");
+		if (Tile >= 0)
+		{
+			if (a_NBT.GetType(Tile) == TAG_Int)
+			{
+				const auto Block = a_NBT.GetInt(Tile);
+				if (IsValidBlock(Block))
+				{
+					Content = cItem(static_cast<short>(Block));
+				}
+			}
+			else if (a_NBT.GetType(Tile) == TAG_String)
+			{
+				StringToItem(a_NBT.GetString(Tile), Content);
+				if (!IsValidBlock(Content.m_ItemType))
+				{
+					Content.Empty();
+				}
+			}
+		}
+		const auto Data = a_NBT.FindChildByName(a_TagIdx, "DisplayData");
+		if ((Data >= 0) && (a_NBT.GetType(Data) == TAG_Int))
+		{
+			Content.m_ItemDamage = static_cast<short>(a_NBT.GetInt(Data) & 0x0f);
+		}
+		const auto Height = a_NBT.FindChildByName(a_TagIdx, "DisplayOffset");
+		if ((Height >= 0) && (a_NBT.GetType(Height) == TAG_Int))
+		{
+			Offset = a_NBT.GetInt(Height);
+		}
+	}
+	auto Minecart = std::make_unique<cRideableMinecart>(Vector3d(), Content, Offset);
 	if (!LoadEntityBaseFromNBT(*Minecart.get(), a_NBT, a_TagIdx))
 	{
 		return;
@@ -1847,28 +1884,15 @@ void cWSSAnvil::LoadMinecartRFromNBT(cEntityList & a_Entities, const cParsedNBT 
 void cWSSAnvil::LoadMinecartCFromNBT(cEntityList & a_Entities, const cParsedNBT & a_NBT, int a_TagIdx)
 {
 	int Items = a_NBT.FindChildByName(a_TagIdx, "Items");
-	if ((Items < 0) || (a_NBT.GetType(Items) != TAG_List))
-	{
-		return;  // Make it an empty chest - the chunk loader will provide an empty cChestEntity for this
-	}
 	auto Minecart = std::make_unique<cMinecartWithChest>(Vector3d());
 	if (!LoadEntityBaseFromNBT(*Minecart.get(), a_NBT, a_TagIdx))
 	{
 		return;
 	}
-	for (int Child = a_NBT.GetFirstChild(Items); Child != -1; Child = a_NBT.GetNextSibling(Child))
+	if ((Items >= 0) && (a_NBT.GetType(Items) == TAG_List))
 	{
-		int Slot = a_NBT.FindChildByName(Child, "Slot");
-		if ((Slot < 0) || (a_NBT.GetType(Slot) != TAG_Byte))
-		{
-			continue;
-		}
-		cItem Item;
-		if (LoadItemFromNBT(Item, a_NBT, Child))
-		{
-			Minecart->SetSlot(a_NBT.GetByte(Slot), Item);
-		}
-	}  // for itr - ItemDefs[]
+		LoadItemGridFromNBT(Minecart->GetContents(), a_NBT, Items);
+	}
 	a_Entities.emplace_back(std::move(Minecart));
 }
 
@@ -1884,7 +1908,9 @@ void cWSSAnvil::LoadMinecartFFromNBT(cEntityList & a_Entities, const cParsedNBT 
 		return;
 	}
 
-	// TODO: Load the Push and Fuel tags
+	const auto State = MinecartSerializer::ReadFurnace(a_NBT, a_TagIdx);
+	Minecart->SetIsFueled(State.Fuel > 0, State.Fuel);
+	Minecart->SetPush({ State.PushX, 0, State.PushZ });
 
 	a_Entities.emplace_back(std::move(Minecart));
 }
@@ -1901,7 +1927,7 @@ void cWSSAnvil::LoadMinecartTFromNBT(cEntityList & a_Entities, const cParsedNBT 
 		return;
 	}
 
-	// TODO: Everything to do with TNT carts
+	Minecart->SetFuseTicks(MinecartSerializer::ReadFuse(a_NBT, a_TagIdx));
 
 	a_Entities.emplace_back(std::move(Minecart));
 }
@@ -1918,7 +1944,14 @@ void cWSSAnvil::LoadMinecartHFromNBT(cEntityList & a_Entities, const cParsedNBT 
 		return;
 	}
 
-	// TODO: Everything to do with hopper carts
+	const auto Items = a_NBT.FindChildByName(a_TagIdx, "Items");
+	if ((Items >= 0) && (a_NBT.GetType(Items) == TAG_List))
+	{
+		LoadItemGridFromNBT(Minecart->GetContents(), a_NBT, Items);
+	}
+	const auto State = MinecartSerializer::ReadHopper(a_NBT, a_TagIdx);
+	Minecart->SetEnabled(State.Enabled);
+	Minecart->SetTransferCooldown(State.TransferCooldown);
 
 	a_Entities.emplace_back(std::move(Minecart));
 }

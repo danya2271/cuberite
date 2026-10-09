@@ -7,6 +7,7 @@
 
 #include "WitherSkullEntity.h"
 #include "../World.h"
+#include "Pawn.h"
 
 
 
@@ -26,9 +27,8 @@ cWitherSkullEntity::cWitherSkullEntity(cEntity * a_Creator, Vector3d a_Pos, Vect
 
 void cWitherSkullEntity::OnHitSolidBlock(Vector3d a_HitPos, eBlockFace a_HitFace)
 {
-	// TODO: Explode
-	// TODO: Apply wither effect to entities nearby
 	Destroy();
+	m_World->DoExplosionAt(1, a_HitPos.x, a_HitPos.y, a_HitPos.z, false, esWitherSkull, this);
 }
 
 
@@ -37,13 +37,27 @@ void cWitherSkullEntity::OnHitSolidBlock(Vector3d a_HitPos, eBlockFace a_HitFace
 
 void cWitherSkullEntity::OnHitEntity(cEntity & a_EntityHit, Vector3d a_HitPos)
 {
-	// TODO: If entity is Ender Crystal, destroy it
-	a_EntityHit.TakeDamage(dtRangedAttack, this, 0, 1);
-
-	// TODO: Explode
-	// TODO: Apply wither effect to entity and others nearby
+	Super::OnHitEntity(a_EntityHit, a_HitPos);
+	if (!m_World->DoWithEntityByID(GetCreatorUniqueID(), [&](cEntity & a_Creator)
+		{
+			const auto HealthBefore = a_EntityHit.GetHealth();
+			a_EntityHit.TakeDamage(dtRangedAttack, &a_Creator, 8, 0);
+			if ((HealthBefore > 0) && (a_EntityHit.GetHealth() <= 0))
+			{
+				a_Creator.Heal(5);
+			}
+			return true;
+		}))
+	{
+		a_EntityHit.TakeDamage(dtRangedAttack, nullptr, 5, 0);
+	}
+	if (a_EntityHit.IsPawn() && (a_EntityHit.GetHealth() > 0))
+	{
+		static_cast<cPawn &>(a_EntityHit).AddEntityEffect(cEntityEffect::effWither, 200, 1);
+	}
 
 	Destroy();
+	m_World->DoExplosionAt(1, a_HitPos.x, a_HitPos.y, a_HitPos.z, false, esWitherSkull, this);
 }
 
 

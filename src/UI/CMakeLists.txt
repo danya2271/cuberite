@@ -31,6 +31,7 @@ target_sources(
 	HorseWindow.h
 	InventoryWindow.h
 	MinecartWithChestWindow.h
+	MinecartWithHopperWindow.h
 	PlayerChildWindow.h
 	TamedMobWindow.h
 	WindowOwner.h
