@@ -2542,7 +2542,18 @@ void cWSSAnvil::LoadEndermanFromNBT(cEntityList & a_Entities, const cParsedNBT &
 
 void cWSSAnvil::LoadEndermiteFromNBT(cEntityList &a_Entities, const cParsedNBT &a_NBT, int a_TagIdx)
 {
-	// TODO
+	auto Monster = std::make_unique<cEndermite>();
+	if (!LoadEntityBaseFromNBT(*Monster, a_NBT, a_TagIdx))
+	{
+		return;
+	}
+
+	if (!LoadMonsterBaseFromNBT(*Monster, a_NBT, a_TagIdx))
+	{
+		return;
+	}
+
+	a_Entities.emplace_back(std::move(Monster));
 }
 
 

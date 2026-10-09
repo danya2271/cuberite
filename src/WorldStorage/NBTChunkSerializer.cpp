@@ -973,6 +973,7 @@ public:
 				case mtChicken:
 				case mtCow:
 				case mtEnderDragon:
+				case mtEndermite:
 				case mtGhast:
 				case mtGiant:
 				case mtGuardian:
@@ -995,7 +996,6 @@ public:
 				case mtDonkey:
 				case mtDrowned:
 				case mtElderGuardian:
-				case mtEndermite:
 				case mtEvoker:
 				case mtFox:
 				case mtHoglin:
