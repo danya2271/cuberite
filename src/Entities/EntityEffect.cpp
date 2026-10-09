@@ -427,12 +427,6 @@ void cEntityEffectInvisibility::BroadcastMetadata(cPawn & a_Target)
 void cEntityEffectWeakness::OnTick(cPawn & a_Target)
 {
 	Super::OnTick(a_Target);
-
-	// Damage reduction = 0.5 damage, multiplied by potion level (Weakness II = 1 damage)
-	// double dmg_reduc = 0.5 * (a_Effect.GetIntensity() + 1);
-
-	// TODO: Implement me!
-	// TODO: Weakened villager zombies can be turned back to villagers with the god apple
 }
 
 

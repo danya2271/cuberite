@@ -2,6 +2,7 @@
 #include "Globals.h"  // NOTE: MSVC stupidness requires this to be the same across all modules
 
 #include "Entity.h"
+#include "Pawn.h"
 #include "Player.h"
 #include "../BlockInfo.h"
 #include "../World.h"
@@ -290,7 +291,7 @@ void cEntity::TakeDamage(cEntity & a_Attacker)
 				return false;
 			}
 
-			a_Entity.TakeDamage(dtAttack, &a_Attacker, SweepDamage, static_cast<float>(SweepDamage), 0);
+			a_Entity.TakeDamage(dtAttack, &a_Attacker, SweepDamage, 0);
 			return false;
 		}
 	);
@@ -304,6 +305,21 @@ void cEntity::TakeDamage(eDamageType a_DamageType, cEntity * a_Attacker, int a_R
 {
 	float FinalDamage = static_cast<float>(a_RawDamage);
 	float ArmorCover = GetArmorCoverAgainst(a_Attacker, a_DamageType, a_RawDamage);
+
+	if (
+		(a_Attacker != nullptr) && a_Attacker->IsPawn() &&
+		((a_DamageType == dtAttack) || (a_DamageType == dtMobAttack))
+	)
+	{
+		const auto Weakness = static_cast<const cPawn *>(a_Attacker)->GetEntityEffect(cEntityEffect::effWeakness);
+		if (Weakness != nullptr)
+		{
+			FinalDamage -= 0.5f * (Weakness->GetIntensity() + 1);
+		}
+	}
+
+	FinalDamage -= ArmorCover;
+	FinalDamage = std::max(0.0f, FinalDamage);
 
 	ApplyArmorDamage(static_cast<int>(ArmorCover));
 

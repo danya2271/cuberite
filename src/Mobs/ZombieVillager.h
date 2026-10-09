@@ -25,6 +25,7 @@ public:
 
 	int ConversionTime                     (void) const { return m_ConversionTime; }
 	cVillager::eVillagerType GetProfession (void) const { return m_Profession; }
+	void SetConversionTime                 (int a_ConversionTime) { m_ConversionTime = a_ConversionTime; }
 
 private:
 

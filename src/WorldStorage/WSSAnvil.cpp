@@ -3592,7 +3592,11 @@ void cWSSAnvil::LoadZombieVillagerFromNBT(cEntityList & a_Entities, const cParse
 		return;
 	}
 
-	// TODO: Conversion time
+	int ConversionTimeIdx = a_NBT.FindChildByName(a_TagIdx, "ConversionTime");
+	if ((ConversionTimeIdx > 0) && (a_NBT.GetType(ConversionTimeIdx) == TAG_Int))
+	{
+		Monster->SetConversionTime(a_NBT.GetInt(ConversionTimeIdx));
+	}
 
 	int AgeableIdx  = a_NBT.FindChildByName(a_TagIdx, "Age");
 	if (AgeableIdx > 0)

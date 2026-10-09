@@ -172,13 +172,13 @@ private:
 			return;
 		}
 
-		// Check whether we should revert to dirt:
-		// TODO: fix for signs and slabs (possibly more blocks) - they should destroy farmland
 		auto upperBlock = a_ChunkInterface.GetBlock(a_BlockPos.addedY(1));
-		if (cBlockInfo::FullyOccupiesVoxel(upperBlock))
+		if (
+			cBlockInfo::IsSolid(upperBlock) ||
+			(upperBlock == E_BLOCK_SIGN_POST) ||
+			(upperBlock == E_BLOCK_WALLSIGN)
+		)
 		{
-			// Until the fix above is done, this line should also suffice:
-			// a_ChunkInterface.SetBlock(a_BlockPos, E_BLOCK_DIRT, 0);
 			a_ChunkInterface.DoWithChunkAt(a_BlockPos, [&](cChunk & Chunk)
 			{
 				TurnToDirt(Chunk, a_BlockPos);

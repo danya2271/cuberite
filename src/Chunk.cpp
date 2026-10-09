@@ -699,6 +699,11 @@ void cChunk::SpawnMobs(cMobSpawner & a_MobSpawner)
 		double ActualX = WorldX + 0.5;
 		double ActualZ = WorldZ + 0.5;
 		newMob->SetPosition(ActualX, WorldY, ActualZ);
+		if ((NumberOfSuccess == 0) && (newMob->GetMobType() == mtOcelot) && GetRandomProvider().RandBool(1.0 / 7.0))
+		{
+			m_World->SpawnMob(ActualX, WorldY, ActualZ, mtOcelot, true);
+			m_World->SpawnMob(ActualX, WorldY, ActualZ, mtOcelot, true);
+		}
 		FLOGD("Spawning {0} #{1} at {2}", newMob->GetClass(), newMob->GetUniqueID(), Vector3i{WorldX, WorldY, WorldZ});
 		NumberOfSuccess++;
 	}  // while (retry)
