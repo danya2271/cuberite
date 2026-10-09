@@ -22,6 +22,43 @@ public:
 	using Super::Super;
 
 
+	virtual bool OnItemUse(
+		cWorld * a_World,
+		cPlayer * a_Player,
+		cBlockPluginInterface & a_PluginInterface,
+		const cItem & a_HeldItem,
+		const Vector3i a_ClickedBlockPos,
+		eBlockFace a_ClickedBlockFace
+	) const override
+	{
+		UNUSED(a_PluginInterface);
+		UNUSED(a_HeldItem);
+
+		if (
+			(a_ClickedBlockFace != BLOCK_FACE_TOP) ||
+			!cChunkDef::IsValidHeight(a_ClickedBlockPos) ||
+			(a_ClickedBlockPos.y >= (cChunkDef::Height - 1)) ||
+			(a_World->GetBlock(a_ClickedBlockPos.addedY(1)) != E_BLOCK_AIR)
+		)
+		{
+			return false;
+		}
+
+		BLOCKTYPE BlockType;
+		NIBBLETYPE BlockMeta;
+		if (!a_World->GetBlockTypeMeta(a_ClickedBlockPos, BlockType, BlockMeta) || (BlockType != E_BLOCK_GRASS))
+		{
+			return false;
+		}
+		UNUSED(BlockMeta);
+
+		a_World->SetBlock(a_ClickedBlockPos, E_BLOCK_GRASS_PATH, 0);
+		a_World->BroadcastSoundEffect("item.shovel.flatten", a_ClickedBlockPos + Vector3d(0.5, 0.5, 0.5), 1.0f, 0.8f);
+		a_Player->UseEquippedItem();
+		return true;
+	}
+
+
 
 	virtual short GetDurabilityLossByAction(eDurabilityLostAction a_Action) const override
 	{
