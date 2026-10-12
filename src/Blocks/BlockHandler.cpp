@@ -30,6 +30,7 @@
 #include "BlockDirt.h"
 #include "BlockDoor.h"
 #include "BlockDropSpenser.h"
+#include "BlockEndRod.h"
 #include "BlockEnchantingTable.h"
 #include "BlockEndPortalFrame.h"
 #include "BlockEnderChest.h"
@@ -273,7 +274,7 @@ namespace
 	constexpr cDefaultBlockHandler            BlockEndGatewayHandler            (E_BLOCK_END_GATEWAY);
 	constexpr cBlockEndPortalFrameHandler     BlockEndPortalFrameHandler        (E_BLOCK_END_PORTAL_FRAME);
 	constexpr cDefaultBlockHandler            BlockEndPortalHandler             (E_BLOCK_END_PORTAL);
-	constexpr cDefaultBlockHandler            BlockEndRodHandler                (E_BLOCK_END_ROD);
+	constexpr cBlockEndRodHandler             BlockEndRodHandler                 (E_BLOCK_END_ROD);
 	constexpr cDefaultBlockHandler            BlockEndStoneHandler              (E_BLOCK_END_STONE);
 	constexpr cBlockFarmlandHandler           BlockFarmlandHandler              (E_BLOCK_FARMLAND);
 	constexpr cBlockFenceHandler              BlockFenceHandler                 (E_BLOCK_FENCE);

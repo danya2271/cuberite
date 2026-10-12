@@ -7,6 +7,7 @@
 #include "json/value.h"
 #include "SignEntity.h"
 #include "../ClientHandle.h"
+#include "../Entities/Player.h"
 
 
 
@@ -28,6 +29,7 @@ void cSignEntity::CopyFrom(const cBlockEntity & a_Src)
 	Super::CopyFrom(a_Src);
 	auto & src = static_cast<const cSignEntity &>(a_Src);
 	m_Line = src.m_Line;
+	m_OwnerUUID = src.m_OwnerUUID;
 }
 
 
@@ -37,6 +39,11 @@ void cSignEntity::CopyFrom(const cBlockEntity & a_Src)
 bool cSignEntity::UsedBy(cPlayer * a_Player)
 {
 	if (a_Player == nullptr)
+	{
+		return false;
+	}
+
+	if (m_OwnerUUID.IsNil() || (m_OwnerUUID != a_Player->GetUUID()))
 	{
 		return false;
 	}

@@ -611,6 +611,10 @@ public:
 			mWriter.AddString("Text2",   a_Sign->GetLine(1));
 			mWriter.AddString("Text3",   a_Sign->GetLine(2));
 			mWriter.AddString("Text4",   a_Sign->GetLine(3));
+			if (!a_Sign->GetOwnerUUID().IsNil())
+			{
+				mWriter.AddString("OwnerUUID", a_Sign->GetOwnerUUID().ToShortString());
+			}
 		mWriter.EndCompound();
 	}
 

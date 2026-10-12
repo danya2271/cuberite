@@ -46,12 +46,28 @@ bool cMobSpawner::CheckPackCenter(BLOCKTYPE a_BlockType)
 
 
 
-eMonsterType cMobSpawner::ChooseMobType(EMCSBiome a_Biome)
+eMonsterType cMobSpawner::ChooseMobType(EMCSBiome a_Biome, eDimension a_Dimension)
 {
 	std::vector<eMonsterType> AllowedMobs;
 
 	for (eMonsterType MobType : GetAllowedMobTypes(a_Biome))
 	{
+		const bool IsNetherMob =
+			(MobType == mtBlaze) ||
+			(MobType == mtGhast) ||
+			(MobType == mtMagmaCube) ||
+			(MobType == mtWitherSkeleton) ||
+			(MobType == mtZombiePigman);
+
+		if (
+			((a_Dimension == dimNether) && !IsNetherMob && (MobType != mtEnderman)) ||
+			((a_Dimension == dimEnd) && (MobType != mtEnderman)) ||
+			((a_Dimension == dimOverworld) && IsNetherMob)
+		)
+		{
+			continue;
+		}
+
 		auto itr = m_AllowedTypes.find(MobType);
 		if (itr != m_AllowedTypes.end())
 		{
@@ -113,6 +129,17 @@ bool cMobSpawner::CanSpawnHere(cChunk * a_Chunk, Vector3i a_RelPos, eMonsterType
 			);
 		}
 
+		case mtCaveSpider:
+		{
+			return
+			(
+				(TargetBlock == E_BLOCK_AIR) &&
+				((!cBlockInfo::IsTransparent(BlockBelow)) || (a_DisableSolidBelowCheck)) &&
+				IsDarkEnough() &&
+				(Random.RandBool())
+			);
+		}
+
 		case mtBlaze:
 		{
 			return
@@ -121,17 +148,6 @@ bool cMobSpawner::CanSpawnHere(cChunk * a_Chunk, Vector3i a_RelPos, eMonsterType
 				(BlockAbove == E_BLOCK_AIR) &&
 				((!cBlockInfo::IsTransparent(BlockBelow)) || (a_DisableSolidBelowCheck)) &&
 				(LightLevel <= 11) &&
-				(Random.RandBool())
-			);
-		}
-
-		case mtCaveSpider:
-		{
-			return
-			(
-				(TargetBlock == E_BLOCK_AIR) &&
-				((!cBlockInfo::IsTransparent(BlockBelow)) || (a_DisableSolidBelowCheck)) &&
-				IsDarkEnough() &&
 				(Random.RandBool())
 			);
 		}
@@ -215,6 +231,16 @@ bool cMobSpawner::CanSpawnHere(cChunk * a_Chunk, Vector3i a_RelPos, eMonsterType
 		}
 
 		case mtMagmaCube:
+		{
+			return
+			(
+				(TargetBlock == E_BLOCK_AIR) &&
+				(BlockAbove == E_BLOCK_AIR) &&
+				((!cBlockInfo::IsTransparent(BlockBelow)) || (a_DisableSolidBelowCheck)) &&
+				(Random.RandBool(0.1))
+			);
+		}
+
 		case mtSlime:
 		{
 			const int AMOUNT_MOON_PHASES = 8;
@@ -530,7 +556,7 @@ cMonster * cMobSpawner::TryToSpawnHere(cChunk * a_Chunk, Vector3i a_RelPos, EMCS
 
 	if (m_NewPack)
 	{
-		m_MobType = ChooseMobType(a_Biome);
+		m_MobType = ChooseMobType(a_Biome, a_Chunk->GetWorld()->GetDimension());
 		if (m_MobType == mtInvalidType)
 		{
 			return nullptr;

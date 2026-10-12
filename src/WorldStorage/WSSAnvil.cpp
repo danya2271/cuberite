@@ -1562,6 +1562,16 @@ OwnedBlockEntity cWSSAnvil::LoadSignFromNBT(const cParsedNBT & a_NBT, int a_TagI
 		Sign->SetLine(3, DecodeSignLine(a_NBT.GetString(currentLine)));
 	}
 
+	currentLine = a_NBT.FindChildByName(a_TagIdx, "OwnerUUID");
+	if (currentLine >= 0)
+	{
+		cUUID OwnerUUID;
+		if (OwnerUUID.FromString(a_NBT.GetString(currentLine)))
+		{
+			Sign->SetOwner(OwnerUUID);
+		}
+	}
+
 	return Sign;
 }
 

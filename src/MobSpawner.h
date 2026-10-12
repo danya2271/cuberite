@@ -53,7 +53,7 @@ protected :
 
 	/** Returns a random type that can spawn in the specified biome.
 	Returns mtInvalidType if none is possible. */
-	eMonsterType ChooseMobType(EMCSBiome a_Biome);
+	eMonsterType ChooseMobType(EMCSBiome a_Biome, eDimension a_Dimension);
 
 	cMonster::eFamily m_MonsterFamily;
 	std::set<eMonsterType> m_AllowedTypes;

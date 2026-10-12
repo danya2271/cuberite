@@ -22,6 +22,7 @@ target_sources(
 	ItemDefaultItem.h
 	ItemDoor.h
 	ItemDropSpenser.h
+	ItemEndRod.h
 	ItemDye.h
 	ItemEmptyMap.h
 	ItemEnchantingTable.h

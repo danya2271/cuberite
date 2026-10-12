@@ -9,6 +9,7 @@
 #pragma once
 
 #include "BlockEntity.h"
+#include "../UUID.h"
 
 
 
@@ -41,6 +42,12 @@ public:  // tolua_export
 
 	// tolua_end
 
+	/** Sets the player UUID that owns this sign. */
+	void SetOwner(const cUUID & a_OwnerUUID) { m_OwnerUUID = a_OwnerUUID; }
+
+	/** Returns the player UUID that owns this sign, or a nil UUID for legacy signs. */
+	const cUUID & GetOwnerUUID(void) const { return m_OwnerUUID; }
+
 	// cBlockEntity overrides:
 	virtual void CopyFrom(const cBlockEntity & a_Src) override;
 	virtual bool UsedBy(cPlayer * a_Player) override;
@@ -49,4 +56,5 @@ public:  // tolua_export
 private:
 
 	std::array<AString, 4> m_Line;
+	cUUID m_OwnerUUID;
 } ;  // tolua_export

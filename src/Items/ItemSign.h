@@ -2,6 +2,7 @@
 #pragma once
 
 #include "ItemHandler.h"
+#include "../BlockEntities/SignEntity.h"
 #include "../World.h"
 #include "../ClientHandle.h"
 
@@ -53,6 +54,17 @@ private:
 		{
 			return false;
 		}
+
+		a_Player.GetWorld()->DoWithBlockEntityAt(a_PlacePosition, [&a_Player](cBlockEntity & a_BlockEntity)
+		{
+			if ((a_BlockEntity.GetBlockType() != E_BLOCK_SIGN_POST) && (a_BlockEntity.GetBlockType() != E_BLOCK_WALLSIGN))
+			{
+				return false;
+			}
+
+			static_cast<cSignEntity &>(a_BlockEntity).SetOwner(a_Player.GetUUID());
+			return true;
+		});
 
 		// After successfully placing the sign, open the sign editor for the player:
 		a_Player.GetClientHandle()->SendEditSign(a_PlacePosition);

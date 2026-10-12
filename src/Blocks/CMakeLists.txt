@@ -32,6 +32,7 @@ target_sources(
 	BlockDirt.h
 	BlockDoor.h
 	BlockDropSpenser.h
+	BlockEndRod.h
 	BlockEnchantingTable.h
 	BlockEnderChest.h
 	BlockEndPortalFrame.h

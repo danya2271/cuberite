@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "BlockHandler.h"
+#include "BlockEntity.h"
 #include "../Chunk.h"
 
 
@@ -9,9 +9,9 @@
 
 
 class cBlockSignPostHandler final :
-	public cBlockHandler
+	public cBlockEntityHandler
 {
-	using Super = cBlockHandler;
+	using Super = cBlockEntityHandler;
 
 public:
 

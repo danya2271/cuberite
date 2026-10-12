@@ -28,6 +28,7 @@
 #include "ItemDefaultItem.h"
 #include "ItemDoor.h"
 #include "ItemDropSpenser.h"
+#include "ItemEndRod.h"
 #include "ItemDye.h"
 #include "ItemEmptyMap.h"
 #include "ItemEnchantingTable.h"
@@ -380,7 +381,7 @@ namespace
 	constexpr cDefaultItemHandler           ItemEndGatewayHandler                      (E_BLOCK_END_GATEWAY);
 	constexpr cDefaultItemHandler           ItemEndPortalBlockHandler                  (E_BLOCK_END_PORTAL);
 	constexpr cItemEndPortalFrameHandler    ItemEndPortalFrameHandler                  (E_BLOCK_END_PORTAL_FRAME);
-	constexpr cDefaultItemHandler           ItemEndRodHandler                          (E_BLOCK_END_ROD);
+	constexpr cItemEndRodHandler            ItemEndRodHandler                          (E_BLOCK_END_ROD);
 	constexpr cDefaultItemHandler           ItemEndStoneBlockHandler                   (E_BLOCK_END_STONE);
 	constexpr cItemEyeOfEnderHandler        ItemEyeOfEnderHandler                      (E_ITEM_EYE_OF_ENDER);
 	constexpr cDefaultItemHandler           ItemFarDiscHandler                         (E_ITEM_FAR_DISC);

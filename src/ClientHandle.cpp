@@ -1820,11 +1820,44 @@ void cClientHandle::HandleUpdateSign(
 	const AString & a_Line3, const AString & a_Line4
 )
 {
-	if (m_LastPlacedSign.Equals(a_BlockPos))
+	if (!m_LastPlacedSign.Equals(a_BlockPos))
 	{
-		m_LastPlacedSign.Set(0, -1, 0);
-		m_Player->GetWorld()->SetSignLines(a_BlockPos, a_Line1, a_Line2, a_Line3, a_Line4, m_Player);
+		return;
 	}
+
+	m_LastPlacedSign.Set(0, -1, 0);
+
+	if (!IsWithinReach(a_BlockPos))
+	{
+		return;
+	}
+
+	BLOCKTYPE BlockType;
+	NIBBLETYPE BlockMeta;
+	if (!m_Player->GetWorld()->GetBlockTypeMeta(a_BlockPos, BlockType, BlockMeta))
+	{
+		return;
+	}
+
+	if ((BlockType != E_BLOCK_SIGN_POST) && (BlockType != E_BLOCK_WALLSIGN))
+	{
+		return;
+	}
+
+	if (!m_Player->GetWorld()->DoWithBlockEntityAt(a_BlockPos, [this](cBlockEntity & a_BlockEntity)
+		{
+			if ((a_BlockEntity.GetBlockType() != E_BLOCK_SIGN_POST) && (a_BlockEntity.GetBlockType() != E_BLOCK_WALLSIGN))
+			{
+				return false;
+			}
+
+			return static_cast<cSignEntity &>(a_BlockEntity).GetOwnerUUID() == m_UUID;
+		}))
+	{
+		return;
+	}
+
+	m_Player->GetWorld()->SetSignLines(a_BlockPos, a_Line1, a_Line2, a_Line3, a_Line4, m_Player);
 }
 
 

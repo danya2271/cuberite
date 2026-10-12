@@ -639,20 +639,14 @@ void cChunk::SpawnMobs(cMobSpawner & a_MobSpawner)
 	int CenterX, CenterY, CenterZ;
 	GetRandomBlockCoords(CenterX, CenterY, CenterZ);
 
-	BLOCKTYPE PackCenterBlock = GetBlock(CenterX, CenterY, CenterZ);
-	if (!a_MobSpawner.CheckPackCenter(PackCenterBlock))
-	{
-		return;
-	}
-
 	a_MobSpawner.NewPack();
 	int NumberOfTries = 0;
 	int NumberOfSuccess = 0;
 	int MaxNbOfSuccess = 4;  // This can be changed during the process for Wolves and Ghasts
+	const int HorizontalRange = 20;
+	const int VerticalRange = 20;
 	while ((NumberOfTries < 12) && (NumberOfSuccess < MaxNbOfSuccess))
 	{
-		const int HorizontalRange = 20;  // MG TODO : relocate
-		const int VerticalRange = 0;     // MG TODO : relocate
 		int TryX, TryY, TryZ;
 		GetThreeRandomNumbers(TryX, TryY, TryZ, 2 * HorizontalRange + 1, 2 * VerticalRange + 1, 2 * HorizontalRange + 1);
 		TryX -= HorizontalRange;
@@ -662,31 +656,26 @@ void cChunk::SpawnMobs(cMobSpawner & a_MobSpawner)
 		TryY += CenterY;
 		TryZ += CenterZ;
 
-		ASSERT(TryY > 0);
-		ASSERT(TryY < cChunkDef::Height - 1);
-
-		int WorldX, WorldY, WorldZ;
-		PositionToWorldPosition(TryX, TryY, TryZ, WorldX, WorldY, WorldZ);
-
-		// MG TODO :
-		// Moon cycle (for slime)
-		// check player and playerspawn presence < 24 blocks
-		// check mobs presence on the block
-
-		// MG TODO : check that "Level" really means Y
-
-		/*
-		NIBBLETYPE SkyLight = 0;
-
-		NIBBLETYPE BlockLight = 0;
-		*/
-
 		NumberOfTries++;
 
-		Vector3i Try(TryX, TryY, TryZ);
+		Vector3i Try(TryX, 1, TryZ);
 		const auto Chunk = GetRelNeighborChunkAdjustCoords(Try);
 
 		if ((Chunk == nullptr) || !Chunk->IsValid() || !Chunk->IsLightValid())
+		{
+			continue;
+		}
+
+		if ((NumberOfTries % 2) == 0)
+		{
+			Try.y = Chunk->GetHeight(Try.x, Try.z) + 1;
+		}
+		else
+		{
+			Try.y = TryY;
+		}
+
+		if ((Try.y <= 0) || (Try.y >= cChunkDef::Height - 1))
 		{
 			continue;
 		}
@@ -696,15 +685,16 @@ void cChunk::SpawnMobs(cMobSpawner & a_MobSpawner)
 		{
 			continue;
 		}
-		double ActualX = WorldX + 0.5;
-		double ActualZ = WorldZ + 0.5;
-		newMob->SetPosition(ActualX, WorldY, ActualZ);
+		const auto SpawnPos = Chunk->RelativeToAbsolute(Try);
+		double ActualX = SpawnPos.x + 0.5;
+		double ActualZ = SpawnPos.z + 0.5;
+		newMob->SetPosition(ActualX, SpawnPos.y, ActualZ);
 		if ((NumberOfSuccess == 0) && (newMob->GetMobType() == mtOcelot) && GetRandomProvider().RandBool(1.0 / 7.0))
 		{
-			m_World->SpawnMob(ActualX, WorldY, ActualZ, mtOcelot, true);
-			m_World->SpawnMob(ActualX, WorldY, ActualZ, mtOcelot, true);
+			m_World->SpawnMob(ActualX, SpawnPos.y, ActualZ, mtOcelot, true);
+			m_World->SpawnMob(ActualX, SpawnPos.y, ActualZ, mtOcelot, true);
 		}
-		FLOGD("Spawning {0} #{1} at {2}", newMob->GetClass(), newMob->GetUniqueID(), Vector3i{WorldX, WorldY, WorldZ});
+		FLOGD("Spawning {0} #{1} at {2}", newMob->GetClass(), newMob->GetUniqueID(), SpawnPos);
 		NumberOfSuccess++;
 	}  // while (retry)
 }
