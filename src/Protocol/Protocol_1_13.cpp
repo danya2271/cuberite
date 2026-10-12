@@ -19,6 +19,7 @@ Implements the 1.13 protocol classes:
 #include "../Entities/ItemFrame.h"
 #include "../Entities/ArrowEntity.h"
 #include "../Entities/FireworkEntity.h"
+#include "../Entities/Painting.h"
 #include "../Entities/SplashPotionEntity.h"
 
 #include "../Mobs/IncludeAllMonsters.h"
@@ -98,7 +99,20 @@ void cProtocol_1_13::SendMapData(const cMap & a_Map, int a_DataStartX, int a_Dat
 
 void cProtocol_1_13::SendPaintingSpawn(const cPainting & a_Painting)
 {
-	// TODO
+	ASSERT(m_State == 3);  // In game mode?
+
+	cPacketizer Pkt(*this, pktSpawnPainting);
+	Pkt.WriteVarInt32(a_Painting.GetUniqueID());
+	// Painting packets carry a UUID even though the server has no separate UUID for paintings.
+	Pkt.WriteBEUInt64(0);
+	Pkt.WriteBEUInt64(a_Painting.GetUniqueID());
+	Pkt.WriteVarInt32(a_Painting.GetPaintingID());
+	Pkt.WriteXYZPosition64(
+		static_cast<Int32>(a_Painting.GetPosX()),
+		static_cast<Int32>(a_Painting.GetPosY()),
+		static_cast<Int32>(a_Painting.GetPosZ())
+	);
+	Pkt.WriteBEInt8(static_cast<Int8>(a_Painting.GetProtocolFacing()));
 }
 
 

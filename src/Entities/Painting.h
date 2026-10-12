@@ -24,6 +24,9 @@ public:  // tolua_export
 	/** Returns the protocol name of the painting */
 	const AString & GetName(void) const { return m_Name; }  // tolua_export
 
+	/** Returns the numeric motive id used by 1.13+ clients. */
+	UInt32 GetPaintingID(void) const;
+
 private:
 
 	virtual void SpawnOn(cClientHandle & a_Client) override;

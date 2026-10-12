@@ -19,6 +19,31 @@ cPainting::cPainting(const AString & a_Name, eBlockFace a_Direction, Vector3d a_
 
 
 
+UInt32 cPainting::GetPaintingID(void) const
+{
+	static constexpr const char * PaintingNames[] =
+	{
+		"Kebab", "Aztec", "Alban", "Aztec2", "Bomb", "Plant", "Wasteland", "Pool",
+		"Courbet", "Sea", "Sunset", "Creebet", "Wanderer", "Graham", "Match", "Bust",
+		"Stage", "Void", "SkullAndRoses", "Wither", "Fighters", "Skeleton", "DonkeyKong",
+		"Pointer", "Pigscene", "BurningSkull"
+	};
+
+	const auto Name = (m_Name.rfind("minecraft:", 0) == 0) ? m_Name.substr(10) : m_Name;
+	for (size_t Index = 0; Index < ARRAYCOUNT(PaintingNames); ++Index)
+	{
+		if (NoCaseCompare(Name, PaintingNames[Index]) == 0)
+		{
+			return static_cast<UInt32>(Index);
+		}
+	}
+
+	return 0;
+}
+
+
+
+
 
 void cPainting::SpawnOn(cClientHandle & a_Client)
 {

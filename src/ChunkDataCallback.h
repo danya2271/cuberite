@@ -59,6 +59,7 @@ public:
 
 	ChunkBlockData m_BlockData;
 	ChunkLightData m_LightData;
+	cChunkDef::HeightMap m_HeightMap{};
 
 private:
 
@@ -66,5 +67,10 @@ private:
 	{
 		m_BlockData.Assign(a_BlockData);
 		m_LightData.Assign(a_LightData);
+	}
+
+	virtual void HeightMap(const cChunkDef::HeightMap & a_HeightMap) override
+	{
+		std::copy(std::begin(a_HeightMap), std::end(a_HeightMap), std::begin(m_HeightMap));
 	}
 };

@@ -358,6 +358,23 @@ eNBTParseError cParsedNBT::ReadTag(void)
 			return eNBTParseError::npSuccess;
 		}
 
+		case TAG_LongArray:
+		{
+			NEEDBYTES(4, eNBTParseError::npArrayMissingLength);
+			int len = NetworkBufToHost<int>(m_Data.data() + m_Pos);
+			m_Pos += 4;
+			if ((len < 0) || (len > (std::numeric_limits<int>::max() / 8)))
+			{
+				return eNBTParseError::npArrayInvalidLength;
+			}
+			len *= 8;
+			NEEDBYTES(len, eNBTParseError::npArrayInvalidLength);
+			Tag.m_DataLength = static_cast<size_t>(len);
+			Tag.m_DataStart = m_Pos;
+			m_Pos += static_cast<size_t>(len);
+			return eNBTParseError::npSuccess;
+		}
+
 		case TAG_Min:
 		{
 			return eNBTParseError::npUnknownTag;
@@ -454,6 +471,7 @@ size_t cParsedNBT::GetMinTagSize(eTagType a_TagType)
 		case TAG_List:      return 5;  // 1 byte list type + 4 bytes count
 		case TAG_Compound:  return 1;  // Single TAG_End byte
 		case TAG_IntArray:  return 4;  // 4 bytes for the count
+		case TAG_LongArray: return 4;  // 4 bytes for the count
 	}
 	UNREACHABLE("Unsupported nbt tag type");
 }
@@ -632,6 +650,21 @@ void cFastNBTWriter::AddByteArray(const AString & a_Name, const char * a_Value, 
 	auto Length = HostToNetwork(static_cast<UInt32>(a_NumElements));
 	m_Result.append(Length.begin(), Length.end());
 	m_Result.append(reinterpret_cast<const std::byte *>(a_Value), a_NumElements);
+}
+
+
+
+
+void cFastNBTWriter::AddLongArray(const AString & a_Name, const Int64 * a_Value, size_t a_NumElements)
+{
+	TagCommon(a_Name, TAG_LongArray);
+	auto Length = HostToNetwork(static_cast<UInt32>(a_NumElements));
+	m_Result.append(Length.begin(), Length.end());
+	for (size_t i = 0; i < a_NumElements; ++i)
+	{
+		auto Element = HostToNetwork(a_Value[i]);
+		m_Result.append(Element.begin(), Element.end());
+	}
 }
 
 

@@ -8,6 +8,8 @@ Implements the 1.14 protocol classes:
 
 #include "Globals.h"
 #include "Protocol_1_14.h"
+
+#include "../Entities/Painting.h"
 #include "Packetizer.h"
 #include "JsonUtils.h"
 #include "../Root.h"
@@ -194,6 +196,20 @@ void cProtocol_1_14::SendMapData(const cMap & a_Map, int a_DataStartX, int a_Dat
 
 void cProtocol_1_14::SendPaintingSpawn(const cPainting & a_Painting)
 {
+	ASSERT(m_State == 3);  // In game mode?
+
+	cPacketizer Pkt(*this, pktSpawnPainting);
+	Pkt.WriteVarInt32(a_Painting.GetUniqueID());
+	// Painting packets carry a UUID even though the server has no separate UUID for paintings.
+	Pkt.WriteBEUInt64(0);
+	Pkt.WriteBEUInt64(a_Painting.GetUniqueID());
+	Pkt.WriteVarInt32(a_Painting.GetPaintingID());
+	Pkt.WriteXYZPosition64(
+		static_cast<Int32>(a_Painting.GetPosX()),
+		static_cast<Int32>(a_Painting.GetPosY()),
+		static_cast<Int32>(a_Painting.GetPosZ())
+	);
+	Pkt.WriteBEInt8(static_cast<Int8>(a_Painting.GetProtocolFacing()));
 }
 
 

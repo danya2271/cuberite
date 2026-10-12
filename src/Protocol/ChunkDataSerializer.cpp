@@ -67,7 +67,7 @@ cChunkDataSerializer::cChunkDataSerializer(const eDimension a_Dimension) :
 
 
 
-void cChunkDataSerializer::SendToClients(const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap, const ClientHandles & a_SendTo)
+void cChunkDataSerializer::SendToClients(const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap, const cChunkDef::HeightMap & a_HeightMap, const ClientHandles & a_SendTo)
 {
 	for (const auto & Client : a_SendTo)
 	{
@@ -75,18 +75,18 @@ void cChunkDataSerializer::SendToClients(const int a_ChunkX, const int a_ChunkZ,
 		{
 			case cProtocol::Version::v1_12_2:
 			{
-				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v340);
+				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, a_HeightMap, CacheVersion::v340);
 				continue;
 			}
 			case cProtocol::Version::v1_13:
 			{
-				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v393);  // This version didn't last very long xD
+				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, a_HeightMap, CacheVersion::v393);  // This version didn't last very long xD
 				continue;
 			}
 			case cProtocol::Version::v1_13_1:
 			case cProtocol::Version::v1_13_2:
 			{
-				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v401);
+				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, a_HeightMap, CacheVersion::v401);
 				continue;
 			}
 			case cProtocol::Version::v1_14:
@@ -95,7 +95,7 @@ void cChunkDataSerializer::SendToClients(const int a_ChunkX, const int a_ChunkZ,
 			case cProtocol::Version::v1_14_3:
 			case cProtocol::Version::v1_14_4:
 			{
-				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, CacheVersion::v477);
+				Serialize(Client, a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, a_HeightMap, CacheVersion::v477);
 				continue;
 			}
 			default:
@@ -115,7 +115,7 @@ void cChunkDataSerializer::SendToClients(const int a_ChunkX, const int a_ChunkZ,
 
 
 
-inline void cChunkDataSerializer::Serialize(const ClientHandles::value_type & a_Client, const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap, const CacheVersion a_CacheVersion)
+inline void cChunkDataSerializer::Serialize(const ClientHandles::value_type & a_Client, const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap, const cChunkDef::HeightMap & a_HeightMap, const CacheVersion a_CacheVersion)
 {
 	auto & Cache = m_Cache[static_cast<size_t>(a_CacheVersion)];
 	if (Cache.Engaged)
@@ -144,7 +144,7 @@ inline void cChunkDataSerializer::Serialize(const ClientHandles::value_type & a_
 		}
 		case CacheVersion::v477:
 		{
-			Serialize477(a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap);
+			Serialize477(a_ChunkX, a_ChunkZ, a_BlockData, a_LightData, a_BiomeMap, a_HeightMap);
 			break;
 		}
 	}
@@ -282,7 +282,7 @@ inline void cChunkDataSerializer::Serialize393(const int a_ChunkX, const int a_C
 
 
 
-inline void cChunkDataSerializer::Serialize477(const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap)
+inline void cChunkDataSerializer::Serialize477(const int a_ChunkX, const int a_ChunkZ, const ChunkBlockData & a_BlockData, const ChunkLightData & a_LightData, const unsigned char * a_BiomeMap, const cChunkDef::HeightMap & a_HeightMap)
 {
 	// This function returns the fully compressed packet (including packet size), not the raw packet!
 	// Below variables tagged static because of https://developercommunity.visualstudio.com/content/problem/367326
@@ -301,9 +301,44 @@ inline void cChunkDataSerializer::Serialize477(const int a_ChunkX, const int a_C
 
 	{
 		cFastNBTWriter Writer;
-		// TODO: client works fine without?
-		// std::array<Int64, 36> Longz = {};
-		// Writer.AddLongArray("MOTION_BLOCKING", Longz.data(), Longz.size());
+		static constexpr UInt8 BitsPerHeightMapEntry = 9;
+		static constexpr size_t HeightMapEntriesPerLong = 64 / BitsPerHeightMapEntry;
+		static constexpr size_t HeightMapLongs = (cChunkDef::Width * cChunkDef::Width + HeightMapEntriesPerLong - 1) / HeightMapEntriesPerLong;
+		std::array<Int64, HeightMapLongs> PackedHeightMap{};
+
+		UInt64 Buffer = 0;
+		UInt8 BitIndex = 0;
+		size_t LongIndex = 0;
+		for (size_t Index = 0; Index < std::size(a_HeightMap); ++Index)
+		{
+			const UInt64 Height = std::min<UInt64>(static_cast<UInt64>(a_HeightMap[Index]) + 1, 256);
+			const UInt8 RemainingBits = static_cast<UInt8>(64 - BitIndex);
+			if (BitsPerHeightMapEntry <= RemainingBits)
+			{
+				Buffer |= Height << BitIndex;
+				BitIndex = static_cast<UInt8>(BitIndex + BitsPerHeightMapEntry);
+				if (BitIndex == 64)
+				{
+					PackedHeightMap[LongIndex++] = static_cast<Int64>(Buffer);
+					Buffer = 0;
+					BitIndex = 0;
+				}
+				continue;
+			}
+
+			Buffer |= (Height & ((UInt64{1} << RemainingBits) - 1)) << BitIndex;
+			PackedHeightMap[LongIndex++] = static_cast<Int64>(Buffer);
+			Buffer = Height >> RemainingBits;
+			BitIndex = static_cast<UInt8>(BitsPerHeightMapEntry - RemainingBits);
+		}
+		if (BitIndex != 0)
+		{
+			PackedHeightMap[LongIndex] = static_cast<Int64>(Buffer);
+		}
+
+		Writer.AddLongArray("MOTION_BLOCKING", PackedHeightMap.data(), PackedHeightMap.size());
+		Writer.AddLongArray("MOTION_BLOCKING_NO_LEAVES", PackedHeightMap.data(), PackedHeightMap.size());
+		Writer.AddLongArray("WORLD_SURFACE", PackedHeightMap.data(), PackedHeightMap.size());
 		Writer.Finish();
 		m_Packet.Write(Writer.GetResult().data(), Writer.GetResult().size());
 	}

@@ -41,7 +41,8 @@ enum eTagType
 	TAG_List      = 9,
 	TAG_Compound  = 10,
 	TAG_IntArray  = 11,
-	TAG_Max       = 11,  // The maximum value for a tag type
+	TAG_LongArray = 12,
+	TAG_Max       = 12,  // The maximum value for a tag type
 } ;
 
 
@@ -336,6 +337,7 @@ public:
 	void AddFloat    (const AString & a_Name, float a_Value);
 	void AddDouble   (const AString & a_Name, double a_Value);
 	void AddString   (const AString & a_Name, std::string_view a_Value);
+	void AddLongArray(const AString & a_Name, const Int64 * a_Value, size_t a_NumElements);
 	void AddByteArray(const AString & a_Name, const char * a_Value, size_t a_NumElements);
 	void AddByteArray(const AString & a_Name, size_t a_NumElements, unsigned char a_Value);
 	void AddIntArray (const AString & a_Name, const Int32 * a_Value, size_t a_NumElements);

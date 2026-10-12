@@ -10,6 +10,12 @@
 
 namespace RedstoneWireHandler
 {
+	static BlockState & EnsureWireState(const cChunk & a_Chunk, const Vector3i a_Position)
+	{
+		auto & States = DataForChunk(a_Chunk).WireStates;
+		return States.try_emplace(a_Position, Block::RedstoneWire::RedstoneWire()).first->second;
+	}
+
 	/** A unified representation of wire direction. */
 	enum class TemporaryDirection
 	{
@@ -146,7 +152,7 @@ namespace RedstoneWireHandler
 				// This function is called during chunk load (through AddBlock). Attempt to tell it its new state:
 				if ((NeighbourChunk != &a_Chunk) && (LateralBlock == E_BLOCK_REDSTONE_WIRE))
 				{
-					auto & NeighbourBlock = DataForChunk(*NeighbourChunk).WireStates.find(Adjacent)->second;
+					auto & NeighbourBlock = EnsureWireState(*NeighbourChunk, Adjacent);
 					SetDirectionState(-Offset, NeighbourBlock, TemporaryDirection::Side);
 				}
 
@@ -163,7 +169,7 @@ namespace RedstoneWireHandler
 
 				if (NeighbourChunk != &a_Chunk)
 				{
-					auto & NeighbourBlock = DataForChunk(*NeighbourChunk).WireStates.find(Adjacent + OffsetYP)->second;
+					auto & NeighbourBlock = EnsureWireState(*NeighbourChunk, Adjacent + OffsetYP);
 					SetDirectionState(-Offset, NeighbourBlock, TemporaryDirection::Side);
 				}
 
@@ -181,7 +187,7 @@ namespace RedstoneWireHandler
 
 				if (NeighbourChunk != &a_Chunk)
 				{
-					auto & NeighbourBlock = DataForChunk(*NeighbourChunk).WireStates.find(Adjacent + OffsetYM)->second;
+					auto & NeighbourBlock = EnsureWireState(*NeighbourChunk, Adjacent + OffsetYM);
 					SetDirectionState(-Offset, NeighbourBlock, TemporaryDirection::Up);
 				}
 			}
@@ -227,7 +233,12 @@ namespace RedstoneWireHandler
 		}
 
 		const auto & Data = DataForChunk(a_Chunk);
-		const auto Block = Data.WireStates.find(a_Position)->second;
+		const auto FindResult = Data.WireStates.find(a_Position);
+		if (FindResult == Data.WireStates.end())
+		{
+			return 0;
+		}
+		const auto Block = FindResult->second;
 
 		DoWithDirectionState(QueryOffset, Block, [a_QueryBlockType, &Power](const auto Left, const auto Front, const auto Right)
 		{
@@ -295,7 +306,12 @@ namespace RedstoneWireHandler
 		Callback(a_Position + OffsetYM);
 
 		const auto & Data = DataForChunk(a_Chunk);
-		const auto Block = Data.WireStates.find(a_Position)->second;
+		const auto FindResult = Data.WireStates.find(a_Position);
+		if (FindResult == Data.WireStates.end())
+		{
+			return;
+		}
+		const auto Block = FindResult->second;
 
 		// Figure out, based on our pre-computed block, where we connect to:
 		for (const auto & Offset : RelativeLaterals)
