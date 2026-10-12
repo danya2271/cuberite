@@ -1537,132 +1537,129 @@ bool cEntity::DetectPortal()
 			}
 		}
 
-		if (!IsInPortal)
+		if (IsInPortal)
 		{
-			return false;
-		}
-
-		switch (GetWorld()->GetBlock(PortalPosition))
-		{
-			case E_BLOCK_NETHER_PORTAL:
+			switch (GetWorld()->GetBlock(PortalPosition))
 			{
-				if (m_PortalCooldownData.m_ShouldPreventTeleportation)
+				case E_BLOCK_NETHER_PORTAL:
 				{
-					// Just exited a portal, don't teleport again
-					return false;
-				}
-
-				if ((m_AttachedTo != nullptr) || (m_Attachee != nullptr))
-				{
-					// Don't let attached entities change worlds, like players riding a minecart
-					return false;
-				}
-
-				if (IsPlayer() && !(static_cast<cPlayer *>(this))->IsGameModeCreative() && (m_PortalCooldownData.m_TicksDelayed != 80))
-				{
-					// Delay teleportation for four seconds if the entity is a non-creative player
-					m_PortalCooldownData.m_TicksDelayed++;
-					return false;
-				}
-				m_PortalCooldownData.m_TicksDelayed = 0;
-
-				// Nether portal in the nether
-				if (GetWorld()->GetDimension() == dimNether)
-				{
-					if (GetWorld()->GetLinkedOverworldName().empty())
+					if (m_PortalCooldownData.m_ShouldPreventTeleportation)
 					{
+						// Just exited a portal, don't teleport again
 						return false;
 					}
 
-					m_PortalCooldownData.m_ShouldPreventTeleportation = true;  // Stop portals from working on respawn
-
-					Vector3d TargetPos = GetPosition();
-					TargetPos.x *= 8.0;
-					TargetPos.z *= 8.0;
-
-					cWorld * TargetWorld = cRoot::Get()->GetWorld(GetWorld()->GetLinkedOverworldName());
-					ASSERT(TargetWorld != nullptr);  // The linkage checker should have prevented this at startup. See cWorld::start()
-					LOGD("Jumping %s -> %s", DimensionToString(dimNether).c_str(), DimensionToString(TargetWorld->GetDimension()).c_str());
-					new cNetherPortalScanner(*this, *TargetWorld, TargetPos, cChunkDef::Height);
-					return true;
-				}
-				// Nether portal in the overworld
-				else
-				{
-					if (GetWorld()->GetLinkedNetherWorldName().empty())
+					if ((m_AttachedTo != nullptr) || (m_Attachee != nullptr))
 					{
+						// Don't let attached entities change worlds, like players riding a minecart
 						return false;
 					}
 
-					m_PortalCooldownData.m_ShouldPreventTeleportation = true;
-
-					Vector3d TargetPos = GetPosition();
-					TargetPos.x /= 8.0;
-					TargetPos.z /= 8.0;
-
-					cWorld * TargetWorld = cRoot::Get()->GetWorld(GetWorld()->GetLinkedNetherWorldName());
-					ASSERT(TargetWorld != nullptr);  // The linkage checker should have prevented this at startup. See cWorld::start()
-					LOGD("Jumping %s -> %s", DimensionToString(dimOverworld).c_str(), DimensionToString(TargetWorld->GetDimension()).c_str());
-					new cNetherPortalScanner(*this, *TargetWorld, TargetPos, (cChunkDef::Height / 2));
-					return true;
-				}
-			}
-			case E_BLOCK_END_PORTAL:
-			{
-				if (m_PortalCooldownData.m_ShouldPreventTeleportation)
-				{
-					return false;
-				}
-
-				if ((m_AttachedTo != nullptr) || (m_Attachee != nullptr))
-				{
-					// Don't let attached entities change worlds, like players riding a minecart
-					return false;
-				}
-
-				// End portal in the end
-				if (GetWorld()->GetDimension() == dimEnd)
-				{
-					if (GetWorld()->GetLinkedOverworldName().empty())
+					if (IsPlayer() && !(static_cast<cPlayer *>(this))->IsGameModeCreative() && (m_PortalCooldownData.m_TicksDelayed != 80))
 					{
+						// Delay teleportation for four seconds if the entity is a non-creative player
+						m_PortalCooldownData.m_TicksDelayed++;
 						return false;
 					}
+					m_PortalCooldownData.m_TicksDelayed = 0;
 
-					m_PortalCooldownData.m_ShouldPreventTeleportation = true;
-
-					cWorld * TargetWorld = cRoot::Get()->GetWorld(GetWorld()->GetLinkedOverworldName());
-					ASSERT(TargetWorld != nullptr);  // The linkage checker should have prevented this at startup. See cWorld::start()
-					LOGD("Jumping %s -> %s", DimensionToString(dimEnd).c_str(), DimensionToString(TargetWorld->GetDimension()).c_str());
-
-					if (IsPlayer())
+					// Nether portal in the nether
+					if (GetWorld()->GetDimension() == dimNether)
 					{
-						cPlayer * Player = static_cast<cPlayer *>(this);
-						if (Player->GetRespawnWorld() == TargetWorld)
+						if (GetWorld()->GetLinkedOverworldName().empty())
 						{
-							return MoveToWorld(*TargetWorld, Player->GetLastBedPos());
+							return false;
 						}
-					}
 
-					return MoveToWorld(*TargetWorld, false);
+						m_PortalCooldownData.m_ShouldPreventTeleportation = true;  // Stop portals from working on respawn
+
+						Vector3d TargetPos = GetPosition();
+						TargetPos.x *= 8.0;
+						TargetPos.z *= 8.0;
+
+						cWorld * TargetWorld = cRoot::Get()->GetWorld(GetWorld()->GetLinkedOverworldName());
+						ASSERT(TargetWorld != nullptr);  // The linkage checker should have prevented this at startup. See cWorld::start()
+						LOGD("Jumping %s -> %s", DimensionToString(dimNether).c_str(), DimensionToString(TargetWorld->GetDimension()).c_str());
+						new cNetherPortalScanner(*this, *TargetWorld, TargetPos, cChunkDef::Height);
+						return true;
+					}
+					// Nether portal in the overworld
+					else
+					{
+						if (GetWorld()->GetLinkedNetherWorldName().empty())
+						{
+							return false;
+						}
+
+						m_PortalCooldownData.m_ShouldPreventTeleportation = true;
+
+						Vector3d TargetPos = GetPosition();
+						TargetPos.x /= 8.0;
+						TargetPos.z /= 8.0;
+
+						cWorld * TargetWorld = cRoot::Get()->GetWorld(GetWorld()->GetLinkedNetherWorldName());
+						ASSERT(TargetWorld != nullptr);  // The linkage checker should have prevented this at startup. See cWorld::start()
+						LOGD("Jumping %s -> %s", DimensionToString(dimOverworld).c_str(), DimensionToString(TargetWorld->GetDimension()).c_str());
+						new cNetherPortalScanner(*this, *TargetWorld, TargetPos, (cChunkDef::Height / 2));
+						return true;
+					}
 				}
-				// End portal in the overworld
-				else
+				case E_BLOCK_END_PORTAL:
 				{
-					if (GetWorld()->GetLinkedEndWorldName().empty())
+					if (m_PortalCooldownData.m_ShouldPreventTeleportation)
 					{
 						return false;
 					}
 
-					m_PortalCooldownData.m_ShouldPreventTeleportation = true;
+					if ((m_AttachedTo != nullptr) || (m_Attachee != nullptr))
+					{
+						// Don't let attached entities change worlds, like players riding a minecart
+						return false;
+					}
 
-					cWorld * TargetWorld = cRoot::Get()->GetWorld(GetWorld()->GetLinkedEndWorldName());
-					ASSERT(TargetWorld != nullptr);  // The linkage checker should have prevented this at startup. See cWorld::start()
-					LOGD("Jumping %s -> %s", DimensionToString(dimOverworld).c_str(), DimensionToString(TargetWorld->GetDimension()).c_str());
-					return MoveToWorld(*TargetWorld, false);
+					// End portal in the end
+					if (GetWorld()->GetDimension() == dimEnd)
+					{
+						if (GetWorld()->GetLinkedOverworldName().empty())
+						{
+							return false;
+						}
+
+						m_PortalCooldownData.m_ShouldPreventTeleportation = true;
+
+						cWorld * TargetWorld = cRoot::Get()->GetWorld(GetWorld()->GetLinkedOverworldName());
+						ASSERT(TargetWorld != nullptr);  // The linkage checker should have prevented this at startup. See cWorld::start()
+						LOGD("Jumping %s -> %s", DimensionToString(dimEnd).c_str(), DimensionToString(TargetWorld->GetDimension()).c_str());
+
+						if (IsPlayer())
+						{
+							cPlayer * Player = static_cast<cPlayer *>(this);
+							if (Player->GetRespawnWorld() == TargetWorld)
+							{
+								return MoveToWorld(*TargetWorld, Player->GetLastBedPos());
+							}
+						}
+
+						return MoveToWorld(*TargetWorld, false);
+					}
+					// End portal in the overworld
+					else
+					{
+						if (GetWorld()->GetLinkedEndWorldName().empty())
+						{
+							return false;
+						}
+
+						m_PortalCooldownData.m_ShouldPreventTeleportation = true;
+
+						cWorld * TargetWorld = cRoot::Get()->GetWorld(GetWorld()->GetLinkedEndWorldName());
+						ASSERT(TargetWorld != nullptr);  // The linkage checker should have prevented this at startup. See cWorld::start()
+						LOGD("Jumping %s -> %s", DimensionToString(dimOverworld).c_str(), DimensionToString(TargetWorld->GetDimension()).c_str());
+						return MoveToWorld(*TargetWorld, false);
+					}
 				}
-
+				default: break;
 			}
-			default: break;
 		}
 	}
 
