@@ -1225,7 +1225,7 @@ void cWorld::TickMobs(std::chrono::milliseconds a_Dt)
 			ASSERT(Monster.GetParentChunk() != nullptr);  // A ticking entity must have a valid parent chunk
 
 			// Tick close mobs
-			if (Monster.GetParentChunk()->HasAnyClients())
+			if (Monster.GetParentChunk()->HasAnyClients() || Monster.IsPlayerTamed())
 			{
 				Monster.Tick(a_Dt, *(a_Entity.GetParentChunk()));
 			}

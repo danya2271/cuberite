@@ -315,6 +315,58 @@ void cMonster::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 	{
 		SetTarget(nullptr);
 		m_EMState = IDLE;
+		if (m_IsFollowingPlayerOwner)
+		{
+			bool OwnerFound = GetWorld()->DoWithPlayerByUUID(m_PlayerOwnerUUID, [&](cPlayer & a_Player)
+			{
+				const auto OwnerPosition = a_Player.GetPosition();
+				Vector3d Direction = GetPosition() - OwnerPosition;
+				Direction.y = 0;
+				const double DistanceSquared = Direction.SqrLength();
+				if (DistanceSquared <= (3.0 * 3.0))
+				{
+					StopMovingToPosition();
+					SetSpeedX(0);
+					SetSpeedZ(0);
+					if (GetMobType() == mtGhast)
+					{
+						SetSpeedY(0);
+					}
+				}
+				else if (GetMobType() == mtGhast)
+				{
+					Direction.y = OwnerPosition.y - GetPosY();
+					Direction.Normalize();
+					SetSpeed(Direction * (m_BaseWalkSpeed * m_RelativeWalkSpeed));
+				}
+				else
+				{
+					Direction.Normalize();
+					MoveToPosition(OwnerPosition + Direction * 3.0);
+				}
+				return true;
+			});
+			if (!OwnerFound)
+			{
+				StopMovingToPosition();
+				SetSpeedX(0);
+				SetSpeedZ(0);
+				if (GetMobType() == mtGhast)
+				{
+					SetSpeedY(0);
+				}
+			}
+		}
+		else
+		{
+			StopMovingToPosition();
+			SetSpeedX(0);
+			SetSpeedZ(0);
+			if (GetMobType() == mtGhast)
+			{
+				SetSpeedY(0);
+			}
+		}
 	}
 
 	if (m_TicksSinceLastDamaged < 100)
@@ -374,27 +426,30 @@ void cMonster::Tick(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 
 	SetPitchAndYawFromDestination(a_IsFollowingPath);
 
-	switch (m_EMState)
+	if (!m_IsPlayerTamed)
 	{
-		case IDLE:
+		switch (m_EMState)
 		{
-			// If enemy passive we ignore checks for player visibility.
-			InStateIdle(a_Dt, a_Chunk);
-			break;
-		}
-		case CHASING:
-		{
-			// If we do not see a player anymore skip chasing action.
-			InStateChasing(a_Dt, a_Chunk);
-			break;
-		}
-		case ESCAPING:
-		{
-			InStateEscaping(a_Dt, a_Chunk);
-			break;
-		}
-		case ATTACKING: break;
-	}  // switch (m_EMState)
+			case IDLE:
+			{
+				// If enemy passive we ignore checks for player visibility.
+				InStateIdle(a_Dt, a_Chunk);
+				break;
+			}
+			case CHASING:
+			{
+				// If we do not see a player anymore skip chasing action.
+				InStateChasing(a_Dt, a_Chunk);
+				break;
+			}
+			case ESCAPING:
+			{
+				InStateEscaping(a_Dt, a_Chunk);
+				break;
+			}
+			case ATTACKING: break;
+		}  // switch (m_EMState)
+	}
 
 	// Leash calculations
 	CalcLeashActions(a_Dt);
