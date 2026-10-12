@@ -181,6 +181,9 @@ cWorld::cWorld(
 	m_bAnimals(true),
 	m_Weather(eWeather_Sunny),
 	m_WeatherInterval(24000),  // Guaranteed 1 game-day of sunshine at server start :)
+	m_IsApocalypseWeather(false),
+	m_ApocalypseTicksUntilStrike(0),
+	m_ApocalypseStrikeCount(0),
 	m_MaxSunnyTicks(180000),        // 150 real-world minutes -+
 	m_MinSunnyTicks(12000),         // 10 real-world minutes   |
 	m_MaxRainTicks(24000),          // 20 real-world minutes   +- all values adapted from Vanilla 1.7.2
@@ -560,6 +563,13 @@ int cWorld::GetDefaultWeatherInterval(eWeather a_Weather) const
 
 void cWorld::SetWeather(eWeather a_NewWeather)
 {
+	if (m_IsApocalypseWeather)
+	{
+		m_IsApocalypseWeather = false;
+		m_ApocalypseTicksUntilStrike = 0;
+		m_ApocalypseStrikeCount = 0;
+	}
+
 	// Do the plugins agree? Do they want a different weather?
 	if (cRoot::Get()->GetPluginManager()->CallHookWeatherChanging(*this, a_NewWeather))
 	{
@@ -581,6 +591,38 @@ void cWorld::SetWeather(eWeather a_NewWeather)
 
 	// Let the plugins know about the change:
 	cPluginManager::Get()->CallHookWeatherChanged(*this);
+}
+
+
+
+
+void cWorld::SetApocalypse(bool a_IsEnabled)
+{
+	if (m_IsApocalypseWeather == a_IsEnabled)
+	{
+		if (a_IsEnabled)
+		{
+			m_WeatherInterval = -1;
+		}
+		return;
+	}
+
+	if (a_IsEnabled)
+	{
+		if (m_Weather != wStorm)
+		{
+			SetWeather(wStorm);
+		}
+		m_IsApocalypseWeather = true;
+		m_ApocalypseStrikeCount = 0;
+		m_ApocalypseTicksUntilStrike = GetRandomProvider().RandInt(40, 100);
+		m_WeatherInterval = -1;
+		return;
+	}
+
+	m_IsApocalypseWeather = false;
+	m_ApocalypseStrikeCount = 0;
+	m_ApocalypseTicksUntilStrike = 0;
 }
 
 
@@ -1137,6 +1179,28 @@ void cWorld::TickClients(const std::chrono::milliseconds a_Dt)
 void cWorld::TickWeather(float a_Dt)
 {
 	UNUSED(a_Dt);
+	if (m_IsApocalypseWeather)
+	{
+		if (m_WeatherInterval == 0)
+		{
+			SetApocalypse(false);
+			return;
+		}
+		if (m_WeatherInterval > 0)
+		{
+			m_WeatherInterval--;
+		}
+		if (m_ApocalypseTicksUntilStrike > 0)
+		{
+			m_ApocalypseTicksUntilStrike--;
+		}
+		else
+		{
+			CastApocalypseLightning();
+		}
+		return;
+	}
+
 	// There are no weather changes anywhere but in the Overworld:
 	if (GetDimension() != dimOverworld)
 	{
@@ -1161,6 +1225,106 @@ void cWorld::TickWeather(float a_Dt)
 		{
 			CastThunderbolt({0, 0, 0});  // TODO: find random positions near players to cast thunderbolts.
 		}
+	}
+}
+
+
+
+
+void cWorld::CastApocalypseLightning(void)
+{
+	std::vector<cPlayer *> Players;
+	for (const auto Player : m_Players)
+	{
+		if (Player->IsTicking() && !Player->IsGameModeSpectator())
+		{
+			Players.push_back(Player);
+		}
+	}
+
+	if (Players.empty())
+	{
+		m_ApocalypseTicksUntilStrike = 100;
+		return;
+	}
+
+	auto & Random = GetRandomProvider();
+	cPlayer * Target = Players[Random.RandInt<size_t>(Players.size() - 1)];
+	const int ChunkX = Target->GetChunkX();
+	const int ChunkZ = Target->GetChunkZ();
+	int PlayersInChunk = 0;
+	for (const auto Player : Players)
+	{
+		if ((Player->GetChunkX() == ChunkX) && (Player->GetChunkZ() == ChunkZ))
+		{
+			PlayersInChunk++;
+		}
+	}
+
+	const int BaseInterval = Random.RandInt(40, 100);
+	m_ApocalypseTicksUntilStrike = std::max(10, BaseInterval / PlayersInChunk);
+	m_ApocalypseStrikeCount++;
+
+	int BlockX = FloorC(Target->GetPosX());
+	int BlockZ = FloorC(Target->GetPosZ());
+	const bool IsNearStrike = ((m_ApocalypseStrikeCount % 3) == 0);
+	const Vector3i TargetPosition{FloorC(Target->GetPosX()), FloorC(Target->GetPosY()), FloorC(Target->GetPosZ())};
+	const bool TargetIsExposed = IsWeatherWetAtXYZ(TargetPosition);
+	if (IsNearStrike)
+	{
+		int OffsetX;
+		int OffsetZ;
+		do
+		{
+			OffsetX = Random.RandInt(-6, 6);
+			OffsetZ = Random.RandInt(-6, 6);
+		}
+		while (((OffsetX * OffsetX) + (OffsetZ * OffsetZ) < 25) || ((OffsetX * OffsetX) + (OffsetZ * OffsetZ) > 36));
+		BlockX += OffsetX;
+		BlockZ += OffsetZ;
+	}
+
+	const auto Height = GetHeight(BlockX, BlockZ);
+	if (!Height.has_value())
+	{
+		return;
+	}
+
+	const int BlockY = (!IsNearStrike && TargetIsExposed) ?
+		Clamp(TargetPosition.y, 0, cChunkDef::Height - 1) :
+		Clamp(*Height, 0, cChunkDef::Height - 1);
+	CastThunderbolt({BlockX, BlockY, BlockZ});
+
+	if (IsNearStrike)
+	{
+		for (int OffsetX = -2; OffsetX <= 2; OffsetX++)
+		{
+			for (int OffsetZ = -2; OffsetZ <= 2; OffsetZ++)
+			{
+				if ((OffsetX * OffsetX) + (OffsetZ * OffsetZ) > 4)
+				{
+					continue;
+				}
+
+				const auto FireHeight = GetHeight(BlockX + OffsetX, BlockZ + OffsetZ);
+				if (!FireHeight.has_value() || (*FireHeight >= (cChunkDef::Height - 1)))
+				{
+					continue;
+				}
+
+				const Vector3i FirePosition{BlockX + OffsetX, *FireHeight + 1, BlockZ + OffsetZ};
+				if ((GetBlock(FirePosition) == E_BLOCK_AIR) && cBlockInfo::IsSolid(GetBlock(FirePosition.addedY(-1))))
+				{
+					SetBlock(FirePosition, E_BLOCK_FIRE, 0);
+				}
+			}
+		}
+	}
+
+	if (!IsNearStrike && TargetIsExposed)
+	{
+		Target->TakeDamage(dtLightning, nullptr, 5, 0);
+		Target->StartBurning(100);
 	}
 }
 

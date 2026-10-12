@@ -811,6 +811,12 @@ public:
 	/** Sets the specified weather; resets weather interval; asks and notifies plugins of the change */
 	void SetWeather(eWeather a_NewWeather);
 
+	/** Enables or disables the apocalypse weather. */
+	void SetApocalypse(bool a_IsEnabled);
+
+	/** Returns true if the apocalypse weather is active. */
+	bool IsApocalypseWeather(void) const { return m_IsApocalypseWeather; }
+
 	/** Forces a weather change in the next game tick */
 	void ChangeWeather(void);
 
@@ -818,31 +824,31 @@ public:
 	eWeather GetWeather(void) const { return m_Weather; }
 
 	/** Returns true if the current weather is sunny. */
-	bool IsWeatherSunny(void) const { return (m_Weather == wSunny); }
+	bool IsWeatherSunny(void) const { return !m_IsApocalypseWeather && (m_Weather == wSunny); }
 
 	/** Returns true if it is sunny at the specified location. This takes into account biomes. */
 	bool IsWeatherSunnyAt(int a_BlockX, int a_BlockZ) const;
 
 	/** Returns true if the current weather is rainy. */
-	bool IsWeatherRain(void) const { return (m_Weather == wRain); }
+	bool IsWeatherRain(void) const { return m_IsApocalypseWeather || (m_Weather == wRain); }
 
 	/** Returns true if it is raining at the specified location. This takes into account biomes. */
 	bool IsWeatherRainAt(int a_BlockX, int a_BlockZ)
 	{
-		return (IsWeatherRain() && !IsBiomeNoDownfall(GetBiomeAt(a_BlockX, a_BlockZ)));
+		return m_IsApocalypseWeather || (IsWeatherRain() && !IsBiomeNoDownfall(GetBiomeAt(a_BlockX, a_BlockZ)));
 	}
 
 	/** Returns true if the current weather is stormy. */
-	bool IsWeatherStorm(void) const { return (m_Weather == wStorm); }
+	bool IsWeatherStorm(void) const { return m_IsApocalypseWeather || (m_Weather == wStorm); }
 
 	/** Returns true if the weather is stormy at the specified location. This takes into account biomes. */
 	bool IsWeatherStormAt(int a_BlockX, int a_BlockZ)
 	{
-		return (IsWeatherStorm() && !IsBiomeNoDownfall(GetBiomeAt(a_BlockX, a_BlockZ)));
+		return m_IsApocalypseWeather || (IsWeatherStorm() && !IsBiomeNoDownfall(GetBiomeAt(a_BlockX, a_BlockZ)));
 	}
 
 	/** Returns true if the world currently has any precipitation - rain, storm or snow. */
-	bool IsWeatherWet(void) const { return !IsWeatherSunny(); }
+	bool IsWeatherWet(void) const { return m_IsApocalypseWeather || !IsWeatherSunny(); }
 
 	/** Returns true if it is raining or storming at the specified location.
 	This takes into account biomes. */
@@ -1043,6 +1049,9 @@ private:
 
 	eWeather m_Weather;
 	int m_WeatherInterval;
+	bool m_IsApocalypseWeather;
+	int m_ApocalypseTicksUntilStrike;
+	UInt32 m_ApocalypseStrikeCount;
 	int m_MaxSunnyTicks, m_MinSunnyTicks;
 	int m_MaxRainTicks,  m_MinRainTicks;
 	int m_MaxThunderStormTicks, m_MinThunderStormTicks;
@@ -1126,6 +1135,9 @@ private:
 
 	/** Handles the weather in each tick */
 	void TickWeather(float a_Dt);
+
+	/** Casts an apocalypse lightning strike and schedules the next one. */
+	void CastApocalypseLightning(void);
 
 	/** Handles the mob spawning / moving / destroying each tick */
 	void TickMobs(std::chrono::milliseconds a_Dt);

@@ -1207,7 +1207,7 @@ int cChunk::GetHeight(int a_X, int a_Z) const
 
 bool cChunk::IsWeatherSunnyAt(int a_RelX, int a_RelZ) const
 {
-	return m_World->IsWeatherSunny() || IsBiomeNoDownfall(GetBiomeAt(a_RelX, a_RelZ));
+	return !m_World->IsApocalypseWeather() && (m_World->IsWeatherSunny() || IsBiomeNoDownfall(GetBiomeAt(a_RelX, a_RelZ)));
 }
 
 
@@ -1216,6 +1216,11 @@ bool cChunk::IsWeatherSunnyAt(int a_RelX, int a_RelZ) const
 
 bool cChunk::IsWeatherWetAt(const int a_RelX, const int a_RelZ) const
 {
+	if (m_World->IsApocalypseWeather())
+	{
+		return true;
+	}
+
 	const auto Biome = GetBiomeAt(a_RelX, a_RelZ);
 	return m_World->IsWeatherWet() && !IsBiomeNoDownfall(Biome) && !IsBiomeCold(Biome);
 }

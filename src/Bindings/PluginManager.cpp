@@ -8,9 +8,80 @@
 #include "../Root.h"
 #include "../Server.h"
 #include "../CommandOutput.h"
+#include "../World.h"
 
 #include "../IniFile.h"
 #include "../Entities/Player.h"
+
+
+
+namespace
+{
+	bool IsApocalypseWeatherCommand(const AStringVector & a_Split)
+	{
+		return
+			(a_Split.size() >= 2) &&
+			((NoCaseCompare(a_Split[0], "/weather") == 0) || (NoCaseCompare(a_Split[0], "weather") == 0)) &&
+			(NoCaseCompare(a_Split[1], "apocalypse") == 0);
+	}
+
+
+
+	bool HandleApocalypseWeatherCommand(
+		const AStringVector & a_Split,
+		cPlayer * a_Player,
+		cCommandOutputCallback * a_Output
+	)
+	{
+		if (!IsApocalypseWeatherCommand(a_Split))
+		{
+			return false;
+		}
+
+		if ((a_Player != nullptr) && !a_Player->HasPermission("core.weather"))
+		{
+			return false;
+		}
+
+		int DurationSeconds = 0;
+		const bool HasDuration = (a_Split.size() >= 3) && StringToInteger(a_Split[2], DurationSeconds);
+		const AString WorldName = HasDuration ? ((a_Split.size() >= 4) ? a_Split[3] : AString{}) : ((a_Split.size() >= 3) ? a_Split[2] : AString{});
+		cWorld * World = WorldName.empty() ?
+			((a_Player != nullptr) ? a_Player->GetWorld() : cRoot::Get()->GetDefaultWorld()) :
+			cRoot::Get()->GetWorld(WorldName);
+
+		if (World == nullptr)
+		{
+			const AString Message = fmt::format(FMT_STRING("There is no world \"{}\""), WorldName);
+			if (a_Player != nullptr)
+			{
+				a_Player->SendMessageFailure(Message);
+			}
+			else if (a_Output != nullptr)
+			{
+				a_Output->OutLn(Message);
+			}
+			return true;
+		}
+
+		World->SetApocalypse(true);
+		if (HasDuration && (DurationSeconds != 0))
+		{
+			World->SetTicksUntilWeatherChange(DurationSeconds * 20);
+		}
+
+		const AString Message = fmt::format(FMT_STRING("Changing to apocalypse weather in world: {}"), World->GetName());
+		if (a_Player != nullptr)
+		{
+			a_Player->SendMessageSuccess(Message);
+		}
+		else if (a_Output != nullptr)
+		{
+			a_Output->OutLn(Message);
+		}
+		return true;
+	}
+}
 
 
 
@@ -1260,6 +1331,10 @@ cPluginManager::CommandResult cPluginManager::HandleCommand(cPlayer & a_Player, 
 	{
 		return crUnknownCommand;
 	}
+	if (a_ShouldCheckPermissions && HandleApocalypseWeatherCommand(Split, &a_Player, nullptr))
+	{
+		return crExecuted;
+	}
 
 	CommandMap::iterator cmd = m_Commands.find(Split[0]);
 	if (cmd == m_Commands.end())
@@ -1590,6 +1665,10 @@ bool cPluginManager::ExecuteConsoleCommand(const AStringVector & a_Split, cComma
 	if (a_Split.empty())
 	{
 		return false;
+	}
+	if (HandleApocalypseWeatherCommand(a_Split, nullptr, &a_Output))
+	{
+		return true;
 	}
 
 	CommandMap::iterator cmd = m_ConsoleCommands.find(a_Split[0]);
