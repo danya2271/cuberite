@@ -71,6 +71,7 @@ public:
 	virtual void SendEntityProperties           (const cEntity & a_Entity) override;
 	virtual void SendEntityVelocity             (const cEntity & a_Entity) override;
 	virtual void SendExperience                 (void) override;
+	virtual void SendExperience                 (float a_Percentage, int a_Level, int a_Total) override;
 	virtual void SendExperienceOrb              (const cExpOrb & a_ExpOrb) override;
 	virtual void SendExplosion                  (Vector3f a_Position, float a_Power) override;
 	virtual void SendGameMode                   (eGameMode a_GameMode) override;

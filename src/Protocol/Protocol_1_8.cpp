@@ -664,13 +664,22 @@ void cProtocol_1_8_0::SendEntityVelocity(const cEntity & a_Entity)
 
 void cProtocol_1_8_0::SendExperience(void)
 {
+	cPlayer * Player = m_Client->GetPlayer();
+	SendExperience(Player->GetXpPercentage(), Player->GetXpLevel(), Player->GetCurrentXp());
+}
+
+
+
+
+
+void cProtocol_1_8_0::SendExperience(float a_Percentage, int a_Level, int a_Total)
+{
 	ASSERT(m_State == 3);  // In game mode?
 
 	cPacketizer Pkt(*this, pktExperience);
-	cPlayer * Player = m_Client->GetPlayer();
-	Pkt.WriteBEFloat(Player->GetXpPercentage());
-	Pkt.WriteVarInt32(static_cast<UInt32>(Player->GetXpLevel()));
-	Pkt.WriteVarInt32(static_cast<UInt32>(Player->GetCurrentXp()));
+	Pkt.WriteBEFloat(a_Percentage);
+	Pkt.WriteVarInt32(static_cast<UInt32>(a_Level));
+	Pkt.WriteVarInt32(static_cast<UInt32>(a_Total));
 }
 
 

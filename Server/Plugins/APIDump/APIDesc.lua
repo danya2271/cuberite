@@ -1783,6 +1783,21 @@ end
 					},
 					Desc = "Sends the header and footer of the player list to the client.",
 				},
+				SendExperience =
+				{
+					{
+						Notes = "Restores the client's experience display using the player's current experience.",
+					},
+					{
+						Params =
+						{
+							{ Name = "Percentage", Type = "number" },
+							{ Name = "Level", Type = "number" },
+							{ Name = "Total", Type = "number" },
+						},
+						Notes = "Sets the client's experience display without changing the player's experience. Percentage is clamped to 0..1 and Level and Total to non-negative values.",
+					},
+				},
 				SendHideTitle =
 				{
 					Notes = "Hides the title. This makes the title and subtitle disappear, but if you call SendTitleTimes() the same title and subtitle will appear again."

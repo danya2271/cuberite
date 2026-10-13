@@ -184,7 +184,8 @@ public:  // tolua_export
 	void SendEntityPosition             (const cEntity & a_Entity);
 	void SendEntityProperties           (const cEntity & a_Entity);
 	void SendEntityVelocity             (const cEntity & a_Entity);
-	void SendExperience                 (void);
+	void SendExperience                 (void);  // tolua_export
+	void SendExperience                 (float a_Percentage, int a_Level, int a_Total);  // tolua_export
 	void SendExperienceOrb              (const cExpOrb & a_ExpOrb);
 	void SendExplosion                  (Vector3f a_Position, float a_Power);
 	void SendGameMode                   (eGameMode a_GameMode);

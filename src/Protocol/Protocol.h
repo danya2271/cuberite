@@ -434,6 +434,7 @@ public:
 	virtual void SendResourcePack               (const AString & a_ResourcePackUrl) = 0;
 	virtual void SendRespawn                    (eDimension a_Dimension) = 0;
 	virtual void SendExperience                 (void) = 0;
+	virtual void SendExperience                 (float a_Percentage, int a_Level, int a_Total) = 0;
 	virtual void SendExperienceOrb              (const cExpOrb & a_ExpOrb) = 0;
 	virtual void SendScoreboardObjective        (const AString & a_Name, const AString & a_DisplayName, Byte a_Mode) = 0;
 	virtual void SendScoreUpdate                (const AString & a_Objective, const AString & a_Player, cObjective::Score a_Score, Byte a_Mode) = 0;

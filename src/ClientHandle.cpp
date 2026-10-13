@@ -3233,6 +3233,15 @@ void cClientHandle::SendExperience(void)
 
 
 
+void cClientHandle::SendExperience(float a_Percentage, int a_Level, int a_Total)
+{
+	m_Protocol->SendExperience(Clamp(a_Percentage, 0.0f, 1.0f), std::max(0, a_Level), std::max(0, a_Total));
+}
+
+
+
+
+
 void cClientHandle::SendExperienceOrb(const cExpOrb & a_ExpOrb)
 {
 	m_Protocol->SendExperienceOrb(a_ExpOrb);
