@@ -673,6 +673,7 @@ OwnedBlockEntity cWSSAnvil::LoadBlockEntityFromNBT(const cParsedNBT & a_NBT, int
 
 bool cWSSAnvil::LoadItemFromNBT(cItem & a_Item, const cParsedNBT & a_NBT, int a_TagIdx)
 {
+	a_Item.m_IsSoot = false;
 	int Type = a_NBT.FindChildByName(a_TagIdx, "id");
 	if (Type <= 0)
 	{
@@ -721,6 +722,10 @@ bool cWSSAnvil::LoadItemFromNBT(cItem & a_Item, const cParsedNBT & a_NBT, int a_
 		// No extra data
 		return true;
 	}
+
+	const auto SootTag = a_NBT.FindChildByName(TagTag, "CuberiteSoot");
+	a_Item.m_IsSoot = (a_Item.m_ItemType == E_ITEM_SNOWBALL) && (SootTag > 0) &&
+		(a_NBT.GetType(SootTag) == TAG_Byte) && (a_NBT.GetByte(SootTag) != 0);
 
 	// Load repair cost:
 	int RepairCost = a_NBT.FindChildByName(TagTag, "RepairCost");
@@ -2263,6 +2268,9 @@ void cWSSAnvil::LoadSnowballFromNBT(cEntityList & a_Entities, const cParsedNBT &
 	{
 		return;
 	}
+
+	const auto SootTag = a_NBT.FindChildByName(a_TagIdx, "CuberiteSoot");
+	Snowball->SetIsSoot((SootTag > 0) && (a_NBT.GetType(SootTag) == TAG_Byte) && (a_NBT.GetByte(SootTag) != 0));
 
 	// Store the new snowball in the entities list:
 	a_Entities.emplace_back(std::move(Snowball));

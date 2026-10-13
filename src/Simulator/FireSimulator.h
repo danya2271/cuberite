@@ -40,25 +40,26 @@ private:
 	/** Chance [0..100000] of an adjacent fuel to catch fire on each tick */
 	int m_Flammability;
 
-	/** Chance [0..100000] of a fuel burning out being replaced by a new fire block instead of an air block */
-	int m_ReplaceFuelChance;
-
 	virtual void AddBlock(cChunk & a_Chunk, Vector3i a_Position, BLOCKTYPE a_Block) override;
 
 	/** Returns the time [msec] after which the specified fire block is stepped again; based on surrounding fuels */
-	int GetBurnStepTime(cChunk * a_Chunk, Vector3i a_RelPos);
+	int GetBurnStepTime(cChunk * a_Chunk, Vector3i a_RelPos, int a_FireCount);
 
 	/** Tries to spread fire to a neighborhood of the specified block */
-	void TrySpreadFire(cChunk * a_Chunk, Vector3i a_RelPos);
+	void TrySpreadFire(cChunk * a_Chunk, Vector3i a_RelPos, const std::vector<Vector3i> & a_Fires);
 
 	/** Removes all burnable blocks neighboring the specified block */
-	void RemoveFuelNeighbors(cChunk * a_Chunk, Vector3i a_RelPos);
+	void RemoveFuelNeighbors(cChunk * a_Chunk, Vector3i a_RelPos, const std::vector<Vector3i> & a_Fires);
+
+	std::vector<Vector3i> CollectNearbyFires(cChunk & a_Chunk);
+	void ShatterGlass(cChunk & a_Chunk, Vector3i a_RelPos, int a_FireCount);
+	static bool IsFuel(BLOCKTYPE a_BlockType, int a_FireCount);
 
 	/** Returns true if a fire can be started in the specified block,
 	that is, it is an air block and has fuel next to it.
 	Note that a_NearChunk may be a chunk neighbor to the block specified!
 	The coords are relative to a_NearChunk but not necessarily in it. */
-	bool CanStartFireInBlock(cChunk * a_NearChunk, Vector3i a_RelPos);
+	bool CanStartFireInBlock(cChunk * a_NearChunk, Vector3i a_RelPos, const std::vector<Vector3i> & a_Fires);
 } ;
 
 

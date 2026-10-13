@@ -13,6 +13,7 @@ target_sources(
 
 	DelayedFluidSimulator.h
 	FireSimulator.h
+	FirePhysics.h
 	FloodyFluidSimulator.h
 	FluidSimulator.h
 	NoopFluidSimulator.h

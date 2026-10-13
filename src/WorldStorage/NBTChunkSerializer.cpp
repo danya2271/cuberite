@@ -4,6 +4,7 @@
 
 #include "Globals.h"
 #include "NBTChunkSerializer.h"
+#include "../Entities/ThrownSnowballEntity.h"
 #include "EnchantmentSerializer.h"
 #include "NamespaceSerializer.h"
 #include "../ChunkDataCallback.h"
@@ -294,10 +295,14 @@ public:
 			((a_Item.m_ItemType == E_ITEM_FIREWORK_ROCKET) || (a_Item.m_ItemType == E_ITEM_FIREWORK_STAR)) ||
 			(a_Item.m_RepairCost > 0) ||
 			(a_Item.m_CustomName != "") ||
-			(!a_Item.m_LoreTable.empty())
+			(!a_Item.m_LoreTable.empty()) || a_Item.IsSoot()
 		)
 		{
 			mWriter.BeginCompound("tag");
+				if (a_Item.IsSoot())
+				{
+					mWriter.AddByte("CuberiteSoot", 1);
+				}
 				if (a_Item.m_RepairCost > 0)
 				{
 					mWriter.AddInt("RepairCost", a_Item.m_RepairCost);
@@ -1107,8 +1112,12 @@ public:
 				case cProjectileEntity::pkFireCharge:
 				case cProjectileEntity::pkWitherSkull:
 				case cProjectileEntity::pkEnderPearl:
+				{
+					break;
+				}
 				case cProjectileEntity::pkSnowball:
 				{
+					mWriter.AddByte("CuberiteSoot", static_cast<cThrownSnowballEntity *>(a_Projectile)->IsSoot());
 					break;
 				}
 				default:

@@ -8,6 +8,7 @@ Implements the 1.14 protocol classes:
 
 #include "Globals.h"
 #include "Protocol_1_14.h"
+#include "../ClientBlockType.h"
 
 #include "../Entities/Painting.h"
 #include "Packetizer.h"
@@ -701,7 +702,7 @@ std::pair<short, short> cProtocol_1_14::GetItemFromProtocolID(UInt32 a_ProtocolI
 
 UInt32 cProtocol_1_14::GetProtocolBlockType(BLOCKTYPE a_BlockType, NIBBLETYPE a_Meta) const
 {
-	return Palette_1_14::From(PaletteUpgrade::FromBlock(a_BlockType, a_Meta));
+	return Palette_1_14::From(PaletteUpgrade::FromBlock(ClientBlockType(a_BlockType), a_Meta));
 }
 
 

@@ -81,6 +81,7 @@ public:
 			(m_Enchantments == a_Item.m_Enchantments) &&
 			(m_CustomName == a_Item.m_CustomName) &&
 			(m_LoreTable == a_Item.m_LoreTable) &&
+			(m_IsSoot == a_Item.m_IsSoot) &&
 			m_FireworkItem.IsEqualTo(a_Item.m_FireworkItem)
 		);
 	}
@@ -169,6 +170,12 @@ public:
 	// tolua_end
 
 	AStringVector  m_LoreTable;  // Exported in ManualBindings.cpp
+
+	bool m_IsSoot = false;
+
+	bool IsSoot() const { return (m_ItemType == E_ITEM_SNOWBALL) && m_IsSoot; }
+
+	static cItem MakeSoot(char a_Count = 1);
 
 	/**
 	Compares two items for the same type or category. Type of item is defined

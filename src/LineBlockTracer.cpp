@@ -29,7 +29,7 @@ namespace
 
 	bool GetEntityCollisionBox(const Vector3i a_BlockPos, const BLOCKTYPE a_BlockType, const NIBBLETYPE a_BlockMeta, cBoundingBox & a_Box)
 	{
-		if (!cBlockInfo::IsSolid(a_BlockType) && (a_BlockType != E_BLOCK_CARPET) && (a_BlockType != E_BLOCK_SNOW))
+		if (!cBlockInfo::IsSolid(a_BlockType) && (a_BlockType != E_BLOCK_CARPET) && (a_BlockType != E_BLOCK_SNOW) && (a_BlockType != E_BLOCK_SOOT))
 		{
 			return false;
 		}
@@ -48,7 +48,7 @@ namespace
 				MaxY = 0.5;
 			}
 		}
-		else if (a_BlockType == E_BLOCK_SNOW)
+		else if ((a_BlockType == E_BLOCK_SNOW) || (a_BlockType == E_BLOCK_SOOT))
 		{
 			MaxY = cBlockInfo::GetBlockHeight(a_BlockType) * ((a_BlockMeta & 0x07) + 1);
 		}

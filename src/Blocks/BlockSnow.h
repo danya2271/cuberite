@@ -7,7 +7,7 @@
 
 
 
-class cBlockSnowHandler final :
+class cBlockSnowHandler :
 	public cBlockHandler
 {
 	using Super = cBlockHandler;
@@ -115,6 +115,44 @@ private:
 	}
 
 } ;
+
+
+
+
+
+class cBlockSootHandler final :
+	public cBlockSnowHandler
+{
+public:
+	using cBlockSnowHandler::cBlockSnowHandler;
+
+private:
+	virtual cItems ConvertToPickups(const NIBBLETYPE a_BlockMeta, const cItem * const a_Tool) const override
+	{
+		if ((a_Tool == nullptr) || !ItemCategory::IsShovel(a_Tool->m_ItemType))
+		{
+			return {};
+		}
+		return cItem::MakeSoot(1 + (a_BlockMeta & 0x07));
+	}
+
+	virtual bool CanBeAt(const cChunk & a_Chunk, const Vector3i a_Position, const NIBBLETYPE a_Meta) const override
+	{
+		UNUSED(a_Meta);
+		const auto BelowPos = a_Position.addedY(-1);
+		if (!cChunkDef::IsValidHeight(BelowPos))
+		{
+			return false;
+		}
+		const auto BlockBelow = a_Chunk.GetBlock(BelowPos);
+		const auto MetaBelow = a_Chunk.GetMeta(BelowPos);
+		return (
+			cBlockInfo::IsSnowable(BlockBelow) ||
+			(((BlockBelow == E_BLOCK_SNOW) || (BlockBelow == E_BLOCK_SOOT)) && (MetaBelow == 7))
+		);
+	}
+
+};
 
 
 

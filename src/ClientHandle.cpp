@@ -1,6 +1,7 @@
 #include "Globals.h"  // NOTE: MSVC stupidness requires this to be the same across all modules
 
 #include "ClientHandle.h"
+#include "ClientBlockType.h"
 #include "BlockInfo.h"
 #include "Server.h"
 #include "World.h"
@@ -1450,7 +1451,7 @@ void cClientHandle::HandleBlockDigFinished(Vector3i a_BlockPos, eBlockFace a_Blo
 		World->DigBlock(absPos, m_Player);
 	}
 
-	World->BroadcastSoundParticleEffect(EffectID::PARTICLE_BLOCK_BREAK, absPos, DugBlock, this);
+	World->BroadcastSoundParticleEffect(EffectID::PARTICLE_BLOCK_BREAK, absPos, ClientBlockType(DugBlock), this);
 	cRoot::Get()->GetPluginManager()->CallHookPlayerBrokenBlock(*m_Player, a_BlockPos, a_BlockFace, DugBlock, DugMeta);
 }
 

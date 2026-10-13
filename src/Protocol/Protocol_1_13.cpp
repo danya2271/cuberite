@@ -31,6 +31,7 @@ Implements the 1.13 protocol classes:
 #include "../World.h"
 #include "../JsonUtils.h"
 #include "../WorldStorage/FastNBT.h"
+#include "../ClientBlockType.h"
 #include "WorldStorage/NamespaceSerializer.h"
 
 #include "../Bindings/PluginManager.h"
@@ -483,7 +484,7 @@ UInt32 cProtocol_1_13::GetPacketID(ePacketType a_PacketType) const
 
 UInt32 cProtocol_1_13::GetProtocolBlockType(BLOCKTYPE a_BlockType, NIBBLETYPE a_Meta) const
 {
-	return Palette_1_13::From(PaletteUpgrade::FromBlock(a_BlockType, a_Meta));
+	return Palette_1_13::From(PaletteUpgrade::FromBlock(ClientBlockType(a_BlockType), a_Meta));
 }
 
 
@@ -734,6 +735,7 @@ void cProtocol_1_13::HandleVanillaPluginMessage(cByteBuffer & a_ByteBuffer, cons
 
 bool cProtocol_1_13::ReadItem(cByteBuffer & a_ByteBuffer, cItem & a_Item, size_t a_KeepRemainingBytes) const
 {
+	a_Item.m_IsSoot = false;
 	HANDLE_PACKET_READ(a_ByteBuffer, ReadBEInt16, Int16, ItemID);
 	if (ItemID == -1)
 	{
@@ -757,10 +759,18 @@ bool cProtocol_1_13::ReadItem(cByteBuffer & a_ByteBuffer, cItem & a_Item, size_t
 	if (!a_ByteBuffer.ReadSome(Metadata, a_ByteBuffer.GetReadableSpace() - a_KeepRemainingBytes) || Metadata.empty() || (Metadata[0] == std::byte(0)))
 	{
 		// No metadata
+		if (!IsValidItem(a_Item.m_ItemType))
+		{
+			a_Item.Empty();
+		}
 		return true;
 	}
 
 	ParseItemMetadata(a_Item, Metadata);
+	if (!IsValidItem(a_Item.m_ItemType))
+	{
+		a_Item.Empty();
+	}
 	return true;
 }
 
@@ -997,8 +1007,7 @@ void cProtocol_1_13::WriteItem(cPacketizer & a_Pkt, const cItem & a_Item) const
 	a_Pkt.WriteBEInt16(static_cast<Int16>(GetProtocolItemType(a_Item.m_ItemType, a_Item.m_ItemDamage)));
 	a_Pkt.WriteBEInt8(a_Item.m_ItemCount);
 
-	// TODO: NBT
-	a_Pkt.WriteBEInt8(0);
+	WriteSootMetadata(a_Pkt, a_Item);
 }
 
 
@@ -1516,7 +1525,7 @@ std::pair<short, short> cProtocol_1_13_1::GetItemFromProtocolID(UInt32 a_Protoco
 
 UInt32 cProtocol_1_13_1::GetProtocolBlockType(BLOCKTYPE a_BlockType, NIBBLETYPE a_Meta) const
 {
-	return Palette_1_13_1::From(PaletteUpgrade::FromBlock(a_BlockType, a_Meta));
+	return Palette_1_13_1::From(PaletteUpgrade::FromBlock(ClientBlockType(a_BlockType), a_Meta));
 }
 
 
@@ -1564,6 +1573,7 @@ cProtocol::Version cProtocol_1_13_2::GetProtocolVersion() const
 
 bool cProtocol_1_13_2::ReadItem(cByteBuffer & a_ByteBuffer, cItem & a_Item, size_t a_KeepRemainingBytes) const
 {
+	a_Item.m_IsSoot = false;
 	HANDLE_PACKET_READ(a_ByteBuffer, ReadBool, bool, Present);
 	if (!Present)
 	{
@@ -1588,10 +1598,18 @@ bool cProtocol_1_13_2::ReadItem(cByteBuffer & a_ByteBuffer, cItem & a_Item, size
 	if (!a_ByteBuffer.ReadSome(Metadata, a_ByteBuffer.GetReadableSpace() - a_KeepRemainingBytes) || Metadata.empty() || (Metadata[0] == std::byte(0)))
 	{
 		// No metadata
+		if (!IsValidItem(a_Item.m_ItemType))
+		{
+			a_Item.Empty();
+		}
 		return true;
 	}
 
 	ParseItemMetadata(a_Item, Metadata);
+	if (!IsValidItem(a_Item.m_ItemType))
+	{
+		a_Item.Empty();
+	}
 	return true;
 }
 
@@ -1622,6 +1640,25 @@ void cProtocol_1_13_2::WriteItem(cPacketizer & a_Pkt, const cItem & a_Item) cons
 	a_Pkt.WriteVarInt32(GetProtocolItemType(a_Item.m_ItemType, a_Item.m_ItemDamage));
 	a_Pkt.WriteBEInt8(a_Item.m_ItemCount);
 
-	// TODO: NBT
-	a_Pkt.WriteBEInt8(0);
+	WriteSootMetadata(a_Pkt, a_Item);
+}
+
+
+
+
+
+void cProtocol_1_13::WriteSootMetadata(cPacketizer & a_Pkt, const cItem & a_Item) const
+{
+	if (!a_Item.IsSoot())
+	{
+		a_Pkt.WriteBEInt8(0);
+		return;
+	}
+	cFastNBTWriter Writer;
+	Writer.AddByte("CuberiteSoot", 1);
+	Writer.BeginCompound("display");
+	Writer.AddString("Name", JsonUtils::SerializeSingleValueJsonObject("text", a_Item.m_CustomName));
+	Writer.EndCompound();
+	Writer.Finish();
+	a_Pkt.WriteBuf(Writer.GetResult());
 }

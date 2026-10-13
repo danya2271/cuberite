@@ -560,6 +560,7 @@ NIBBLETYPE cBlockInfo::GetSpreadLightFalloff(const BLOCKTYPE Block)
 		case E_BLOCK_SAPLING:
 		case E_BLOCK_SIGN_POST:
 		case E_BLOCK_SNOW:
+		case E_BLOCK_SOOT:
 		case E_BLOCK_SPRUCE_DOOR:
 		case E_BLOCK_SPRUCE_FENCE:
 		case E_BLOCK_SPRUCE_FENCE_GATE:
@@ -843,6 +844,7 @@ bool cBlockInfo::IsPistonBreakable(const BLOCKTYPE Block)
 		case E_BLOCK_SAPLING:
 		case E_BLOCK_SIGN_POST:
 		case E_BLOCK_SNOW:
+		case E_BLOCK_SOOT:
 		case E_BLOCK_SPRUCE_DOOR:
 		case E_BLOCK_STATIONARY_LAVA:
 		case E_BLOCK_STATIONARY_WATER:
@@ -958,6 +960,7 @@ bool cBlockInfo::IsSolid(const BLOCKTYPE Block)
 		case E_BLOCK_SAPLING:
 		case E_BLOCK_SIGN_POST:
 		case E_BLOCK_SNOW:
+		case E_BLOCK_SOOT:
 		case E_BLOCK_STANDING_BANNER:
 		case E_BLOCK_STATIONARY_LAVA:
 		case E_BLOCK_STATIONARY_WATER:
@@ -1116,6 +1119,7 @@ bool cBlockInfo::IsTransparent(const BLOCKTYPE Block)
 		case E_BLOCK_SEA_LANTERN:
 		case E_BLOCK_SIGN_POST:
 		case E_BLOCK_SNOW:
+		case E_BLOCK_SOOT:
 		case E_BLOCK_SPRUCE_DOOR:
 		case E_BLOCK_SPRUCE_FENCE:
 		case E_BLOCK_SPRUCE_FENCE_GATE:
@@ -1196,6 +1200,7 @@ float cBlockInfo::GetBlockHeight(const BLOCKTYPE Block)
 		case E_BLOCK_PURPUR_SLAB:         return 0.5;
 		case E_BLOCK_RED_SANDSTONE_SLAB:  return 0.5;
 		case E_BLOCK_SNOW:                return 0.125;   // one layer is 1 / 8 (2 pixels) tall
+		case E_BLOCK_SOOT:                return 0.125;
 		case E_BLOCK_SPRUCE_FENCE:        return 1.5;
 		case E_BLOCK_SPRUCE_FENCE_GATE:   return 1.5;
 		case E_BLOCK_STONE_SLAB:          return 0.5;
@@ -1425,6 +1430,7 @@ float cBlockInfo::GetHardness(const BLOCKTYPE Block)
 		case E_BLOCK_SILVERFISH_EGG:                return 0.75f;
 		case E_BLOCK_SLIME_BLOCK:                   return 0.0f;
 		case E_BLOCK_SNOW:                          return 0.1f;
+		case E_BLOCK_SOOT:                          return 0.1f;
 		case E_BLOCK_SNOW_BLOCK:                    return 0.2f;
 		case E_BLOCK_SOULSAND:                      return 0.5f;
 		case E_BLOCK_SPONGE:                        return 0.6f;

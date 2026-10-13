@@ -265,7 +265,7 @@ std::unique_ptr<cProjectileEntity> cProjectileEntity::Create(
 		case pkArrow:         return std::make_unique<cArrowEntity>           (a_Creator, a_Pos, Speed);
 		case pkEgg:           return std::make_unique<cThrownEggEntity>       (a_Creator, a_Pos, Speed);
 		case pkEnderPearl:    return std::make_unique<cThrownEnderPearlEntity>(a_Creator, a_Pos, Speed);
-		case pkSnowball:      return std::make_unique<cThrownSnowballEntity>  (a_Creator, a_Pos, Speed);
+		case pkSnowball:      return std::make_unique<cThrownSnowballEntity>  (a_Creator, a_Pos, Speed, (a_Item != nullptr) && a_Item->IsSoot());
 		case pkGhastFireball: return std::make_unique<cGhastFireballEntity>   (a_Creator, a_Pos, Speed);
 		case pkFireCharge:    return std::make_unique<cFireChargeEntity>      (a_Creator, a_Pos, Speed);
 		case pkExpBottle:     return std::make_unique<cExpBottleEntity>       (a_Creator, a_Pos, Speed);

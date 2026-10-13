@@ -9,6 +9,7 @@ Implements the 1.8 protocol classes:
 
 #include "Globals.h"
 #include "Protocol_1_8.h"
+#include "../ClientBlockType.h"
 #include "main.h"
 #include "../mbedTLS++/Sha1Checksum.h"
 #include "Packetizer.h"
@@ -218,7 +219,7 @@ void cProtocol_1_8_0::SendBlockChange(Vector3i a_BlockPos, BLOCKTYPE a_BlockType
 
 	cPacketizer Pkt(*this, pktBlockChange);
 	Pkt.WriteXYZPosition64(a_BlockPos);
-	Pkt.WriteVarInt32((static_cast<UInt32>(a_BlockType) << 4) | (static_cast<UInt32>(a_BlockMeta) & 15));
+	Pkt.WriteVarInt32((static_cast<UInt32>(ClientBlockType(a_BlockType)) << 4) | (static_cast<UInt32>(a_BlockMeta) & 15));
 }
 
 
@@ -238,7 +239,7 @@ void cProtocol_1_8_0::SendBlockChanges(int a_ChunkX, int a_ChunkZ, const sSetBlo
 	{
 		Int16 Coords = static_cast<Int16>(Change.m_RelY | (Change.m_RelZ << 8) | (Change.m_RelX << 12));
 		Pkt.WriteBEInt16(Coords);
-		Pkt.WriteVarInt32(static_cast<UInt32>(Change.m_BlockType & 0xFFF) << 4 | (Change.m_BlockMeta & 0xF));
+		Pkt.WriteVarInt32(static_cast<UInt32>(ClientBlockType(Change.m_BlockType)) << 4 | (Change.m_BlockMeta & 0xF));
 	}
 }
 
@@ -1466,7 +1467,7 @@ void cProtocol_1_8_0::SendSpawnEntity(const cEntity & a_Entity)
 	else if (a_Entity.IsFallingBlock())
 	{
 		const auto & Block = static_cast<const cFallingBlock &>(a_Entity);
-		EntityData = Block.GetBlockType() | (static_cast<Int32>(Block.GetBlockMeta()) << 12);
+		EntityData = ClientBlockType(Block.GetBlockType()) | (static_cast<Int32>(Block.GetBlockMeta()) << 12);
 	}
 	else if (a_Entity.IsFloater())
 	{
@@ -3022,6 +3023,14 @@ void cProtocol_1_8_0::ParseItemMetadata(cItem & a_Item, const ContiguousByteBuff
 				}
 				break;
 			}
+			case TAG_Byte:
+			{
+				if ((TagName == "CuberiteSoot") && (a_Item.m_ItemType == E_ITEM_SNOWBALL))
+				{
+					a_Item.m_IsSoot = (NBT.GetByte(tag) != 0);
+				}
+				break;
+			}
 			default: LOGD("Unimplemented NBT data when parsing!"); break;
 		}
 	}
@@ -3033,6 +3042,7 @@ void cProtocol_1_8_0::ParseItemMetadata(cItem & a_Item, const ContiguousByteBuff
 
 bool cProtocol_1_8_0::ReadItem(cByteBuffer & a_ByteBuffer, cItem & a_Item, size_t a_KeepRemainingBytes) const
 {
+	a_Item.m_IsSoot = false;
 	HANDLE_PACKET_READ(a_ByteBuffer, ReadBEInt16, Int16, ItemType);
 
 	if (ItemType == -1)
@@ -3057,10 +3067,18 @@ bool cProtocol_1_8_0::ReadItem(cByteBuffer & a_ByteBuffer, cItem & a_Item, size_
 	if (!a_ByteBuffer.ReadSome(Metadata, a_ByteBuffer.GetReadableSpace() - a_KeepRemainingBytes) || Metadata.empty() || (Metadata[0] == std::byte(0)))
 	{
 		// No metadata
+		if (!IsValidItem(a_Item.m_ItemType))
+		{
+			a_Item.Empty();
+		}
 		return true;
 	}
 
 	ParseItemMetadata(a_Item, Metadata);
+	if (!IsValidItem(a_Item.m_ItemType))
+	{
+		a_Item.Empty();
+	}
 	return true;
 }
 
@@ -3464,6 +3482,10 @@ void cProtocol_1_8_0::WriteItem(cPacketizer & a_Pkt, const cItem & a_Item) const
 
 	// Send the enchantments and custom names:
 	cFastNBTWriter Writer;
+	if (a_Item.IsSoot())
+	{
+		Writer.AddByte("CuberiteSoot", 1);
+	}
 	if (a_Item.m_RepairCost != 0)
 	{
 		Writer.AddInt("RepairCost", a_Item.m_RepairCost);

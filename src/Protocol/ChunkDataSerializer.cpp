@@ -1,5 +1,6 @@
 #include "Globals.h"
 #include "ChunkDataSerializer.h"
+#include "../ClientBlockType.h"
 #include "Protocol_1_8.h"
 #include "../ClientHandle.h"
 #include "../WorldStorage/FastNBT.h"
@@ -31,7 +32,7 @@ namespace
 
 	auto PaletteLegacy(const BLOCKTYPE a_BlockType, const NIBBLETYPE a_Meta)
 	{
-		return (a_BlockType << 4) | a_Meta;
+		return (ClientBlockType(a_BlockType) << 4) | a_Meta;
 	}
 
 	auto Palette393(const BLOCKTYPE a_BlockType, const NIBBLETYPE a_Meta)

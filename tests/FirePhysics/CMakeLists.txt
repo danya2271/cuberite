@@ -1,0 +1,4 @@
+add_executable(FirePhysics-exe FirePhysicsTest.cpp)
+target_include_directories(FirePhysics-exe PRIVATE ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/tests)
+target_link_libraries(FirePhysics-exe fmt::fmt)
+add_test(NAME FirePhysics-test COMMAND FirePhysics-exe)

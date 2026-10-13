@@ -1,6 +1,7 @@
 #include "Globals.h"
 
 #include "Upgrade.h"
+#include "ClientBlockType.h"
 #include "Registries/BlockStates.h"
 
 namespace PaletteUpgrade
@@ -9,7 +10,7 @@ namespace PaletteUpgrade
 	{
 		using namespace Block;
 
-		switch ((Block << 4) | Meta)
+		switch ((ClientBlockType(Block) << 4) | Meta)
 		{
 			case (0 << 4) | 0: return Air::Air();
 			case (1 << 4) | 0: return Stone::Stone();

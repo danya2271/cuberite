@@ -382,7 +382,7 @@ void cPawn::HandleFalling(void)
 
 			/* If the block is solid, and the blockhandler confirms the block to be inside, we're officially on the ground. */
 			if (
-				(cBlockInfo::IsSolid(BlockType) || (BlockType == E_BLOCK_CARPET) || (BlockType == E_BLOCK_SNOW)) &&
+				(cBlockInfo::IsSolid(BlockType) || (BlockType == E_BLOCK_CARPET) || (BlockType == E_BLOCK_SNOW) || (BlockType == E_BLOCK_SOOT)) &&
 				cBlockHandler::For(BlockType).IsInsideBlock(CrossTestPosition - BlockTestPosition, BlockMeta)
 			)
 			{

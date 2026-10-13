@@ -2,13 +2,15 @@
 
 #include "ThrownSnowballEntity.h"
 #include "../World.h"
+#include "Pawn.h"
 
 
 
 
 
-cThrownSnowballEntity::cThrownSnowballEntity(cEntity * a_Creator, Vector3d a_Pos, Vector3d a_Speed):
-	Super(pkSnowball, a_Creator, a_Pos, a_Speed, 0.25f, 0.25f)
+cThrownSnowballEntity::cThrownSnowballEntity(cEntity * a_Creator, Vector3d a_Pos, Vector3d a_Speed, bool a_IsSoot):
+	Super(pkSnowball, a_Creator, a_Pos, a_Speed, 0.25f, 0.25f),
+	m_IsSoot(a_IsSoot)
 {
 }
 
@@ -33,6 +35,12 @@ void cThrownSnowballEntity::OnHitEntity(cEntity & a_EntityHit, Vector3d a_HitPos
 	}
 
 	a_EntityHit.TakeDamage(dtRangedAttack, GetCreatorUniqueID(), Damage, 1);
+	if (m_IsSoot && a_EntityHit.IsPlayer())
+	{
+		auto & Player = static_cast<cPawn &>(a_EntityHit);
+		Player.AddEntityEffect(cEntityEffect::effSlowness, 100, 1);
+		Player.AddEntityEffect(cEntityEffect::effBlindness, 100, 1);
+	}
 	m_World->BroadcastEntityAnimation(*this, EntityAnimation::SnowballPoofs);
 	Destroy();
 }

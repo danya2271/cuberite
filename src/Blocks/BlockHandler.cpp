@@ -406,6 +406,7 @@ namespace
 	constexpr cBlockSlimeHandler              BlockSlimeBlockHandler            (E_BLOCK_SLIME_BLOCK);
 	constexpr cDefaultBlockHandler            BlockSnowBlockHandler             (E_BLOCK_SNOW_BLOCK);
 	constexpr cBlockSnowHandler               BlockSnowHandler                  (E_BLOCK_SNOW);
+	constexpr cBlockSootHandler               BlockSootHandler                  (E_BLOCK_SOOT);
 	constexpr cDefaultBlockHandler            BlockSoulSandHandler              (E_BLOCK_SOULSAND);
 	constexpr cBlockSpongeHandler             BlockSpongeHandler                (E_BLOCK_SPONGE);
 	constexpr cBlockDoorHandler               BlockSpruceDoorHandler            (E_BLOCK_SPRUCE_DOOR);
@@ -847,6 +848,7 @@ const cBlockHandler & cBlockHandler::For(BLOCKTYPE a_BlockType)
 		case E_BLOCK_SILVERFISH_EGG:                return BlockInfestedBlockHandler;
 		case E_BLOCK_SLIME_BLOCK:                   return BlockSlimeBlockHandler;
 		case E_BLOCK_SNOW:                          return BlockSnowHandler;
+		case E_BLOCK_SOOT:                          return BlockSootHandler;
 		case E_BLOCK_SNOW_BLOCK:                    return BlockSnowBlockHandler;
 		case E_BLOCK_SOULSAND:                      return BlockSoulSandHandler;
 		case E_BLOCK_SPONGE:                        return BlockSpongeHandler;
@@ -893,7 +895,6 @@ const cBlockHandler & cBlockHandler::For(BLOCKTYPE a_BlockType)
 		case E_BLOCK_YELLOW_SHULKER_BOX:            return BlockYellowShulkerBoxHandler;
 
 		// TODO: these will be removed in 1.13+ migration
-		case E_BLOCK_NUMBER_OF_TYPES:
 		case E_BLOCK_UNFINISHED: return BlockAirHandler;
 	}
 	UNREACHABLE("Getting handler for unexpected block type");

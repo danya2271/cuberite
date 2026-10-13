@@ -1079,7 +1079,7 @@ void cEntity::HandlePhysics(std::chrono::milliseconds a_Dt, cChunk & a_Chunk)
 			return (a_BlockMeta & 0x04) == 0;
 		}
 
-		if (!cBlockInfo::IsSolid(a_BlockType) && (a_BlockType != E_BLOCK_CARPET) && (a_BlockType != E_BLOCK_SNOW))
+		if (!cBlockInfo::IsSolid(a_BlockType) && (a_BlockType != E_BLOCK_CARPET) && (a_BlockType != E_BLOCK_SNOW) && (a_BlockType != E_BLOCK_SOOT))
 		{
 			return false;
 		}

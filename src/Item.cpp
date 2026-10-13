@@ -62,6 +62,7 @@ cItem::cItem(
 
 void cItem::Empty()
 {
+	m_IsSoot = false;
 	m_ItemType = E_ITEM_EMPTY;
 	m_ItemCount = 0;
 	m_ItemDamage = 0;
@@ -79,6 +80,7 @@ void cItem::Empty()
 
 void cItem::Clear()
 {
+	m_IsSoot = false;
 	m_ItemType = E_ITEM_EMPTY;
 	m_ItemCount = 0;
 	m_ItemDamage = 0;
@@ -95,6 +97,17 @@ cItem cItem::CopyOne(void) const
 	cItem res(*this);
 	res.m_ItemCount = 1;
 	return res;
+}
+
+
+
+
+
+cItem cItem::MakeSoot(char a_Count)
+{
+	cItem Item(E_ITEM_SNOWBALL, a_Count, 0, "", "Сажа");
+	Item.m_IsSoot = true;
+	return Item;
 }
 
 
@@ -225,6 +238,10 @@ const cItemHandler & cItem::GetHandler(void) const
 void cItem::GetJson(Json::Value & a_OutValue) const
 {
 	a_OutValue["ID"] = m_ItemType;
+	if (IsSoot())
+	{
+		a_OutValue["CuberiteSoot"] = true;
+	}
 	if (m_ItemType > 0)
 	{
 		a_OutValue["Count"] = m_ItemCount;
@@ -285,7 +302,14 @@ void cItem::GetJson(Json::Value & a_OutValue) const
 
 void cItem::FromJson(const Json::Value & a_Value)
 {
+	m_IsSoot = false;
 	m_ItemType = static_cast<ENUM_ITEM_TYPE>(a_Value.get("ID", -1).asInt());
+	if (!IsValidItem(m_ItemType))
+	{
+		Empty();
+		return;
+	}
+	m_IsSoot = (m_ItemType == E_ITEM_SNOWBALL) && a_Value.get("CuberiteSoot", false).asBool();
 	if (m_ItemType > 0)
 	{
 		m_ItemCount = static_cast<char>(a_Value.get("Count", -1).asInt());

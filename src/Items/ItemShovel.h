@@ -77,7 +77,7 @@ public:
 
 	virtual bool CanHarvestBlock(BLOCKTYPE a_BlockType) const override
 	{
-		if (a_BlockType == E_BLOCK_SNOW)
+		if ((a_BlockType == E_BLOCK_SNOW) || (a_BlockType == E_BLOCK_SOOT))
 		{
 			return true;
 		}
@@ -119,6 +119,7 @@ public:
 			case E_BLOCK_MYCELIUM:
 			case E_BLOCK_SAND:
 			case E_BLOCK_SNOW:
+			case E_BLOCK_SOOT:
 			case E_BLOCK_SNOW_BLOCK:
 			case E_BLOCK_SOULSAND:
 			{

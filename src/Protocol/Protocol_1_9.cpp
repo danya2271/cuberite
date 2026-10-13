@@ -1378,6 +1378,14 @@ void cProtocol_1_9_0::ParseItemMetadata(cItem & a_Item, const ContiguousByteBuff
 				}
 				break;
 			}
+			case TAG_Byte:
+			{
+				if ((TagName == "CuberiteSoot") && (a_Item.m_ItemType == E_ITEM_SNOWBALL))
+				{
+					a_Item.m_IsSoot = (NBT.GetByte(tag) != 0);
+				}
+				break;
+			}
 			case TAG_String:
 			{
 				if (TagName == "Potion")
@@ -1820,6 +1828,10 @@ void cProtocol_1_9_0::WriteItem(cPacketizer & a_Pkt, const cItem & a_Item) const
 
 	// Send the enchantments and custom names:
 	cFastNBTWriter Writer;
+	if (a_Item.IsSoot())
+	{
+		Writer.AddByte("CuberiteSoot", 1);
+	}
 	if (a_Item.m_RepairCost != 0)
 	{
 		Writer.AddInt("RepairCost", a_Item.m_RepairCost);

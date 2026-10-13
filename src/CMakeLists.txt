@@ -7,6 +7,7 @@ target_sources(
 	BlockArea.cpp
 	BlockInfo.cpp
 	BlockType.cpp
+	ClientBlockType.h
 	BrewingRecipes.cpp
 	Broadcaster.cpp
 	BoundingBox.cpp

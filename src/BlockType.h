@@ -269,12 +269,13 @@ enum ENUM_BLOCK_TYPE : BLOCKTYPE
 	E_BLOCK_BLACK_GLAZED_TERRACOTTA = 250,
 	E_BLOCK_CONCRETE = 251,
 	E_BLOCK_CONCRETE_POWDER = 252,
+	E_BLOCK_SOOT = 253,
 	// ...
 	E_BLOCK_STRUCTURE_BLOCK = 255,
 
 	// Keep these two as the last values. Update the last block value to the last block with an id less than 255 when adding another block
 	// IsValidBlock() depends on this (255 gets checked additionally because there is a gap. See https://minecraft.wiki/w/Data_values#Block_IDs
-	E_BLOCK_NUMBER_OF_TYPES = E_BLOCK_CONCRETE_POWDER + 1,  ///< Number of individual (different) blocktypes
+	E_BLOCK_NUMBER_OF_TYPES = E_BLOCK_CONCRETE_POWDER + 1,  ///< Number of client-visible blocktypes
 	E_BLOCK_MAX_TYPE_ID = E_BLOCK_NUMBER_OF_TYPES - 1,  ///< Maximum BlockType number used
 
 	E_BLOCK_UNFINISHED = 254,  // Special type used as a placeholder, signifying that the block lacks implementation
