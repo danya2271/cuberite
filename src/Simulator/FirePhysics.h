@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../BlockType.h"
+#include "../FastRandom.h"
 #include "../Vector3.h"
 #include <algorithm>
 #include <limits>
@@ -10,6 +11,7 @@ namespace FirePhysics
 	constexpr int DensityRadius = 4;
 	constexpr int GlassThreshold = 5;
 	constexpr int MineralThreshold = 20;
+	constexpr double ObsidianChance = 0.05;
 
 	inline bool IsMineralFuel(BLOCKTYPE a_Block)
 	{
@@ -58,6 +60,10 @@ namespace FirePhysics
 
 	inline BLOCKTYPE BurnResidue(BLOCKTYPE a_Block)
 	{
-		return IsMineralFuel(a_Block) ? E_BLOCK_OBSIDIAN : E_BLOCK_SOOT;
+		if (!IsMineralFuel(a_Block))
+		{
+			return E_BLOCK_SOOT;
+		}
+		return GetRandomProvider().RandBool(ObsidianChance) ? E_BLOCK_OBSIDIAN : E_BLOCK_BLOCK_OF_COAL;
 	}
 }
